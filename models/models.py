@@ -24,8 +24,8 @@ class User(Base):
     username = Column(String)
     mail = Column(String)
     last_call = Column(String) # latest message "Давай поиграем?" id to delete it on /game_stop
-    # last_call_giveaway = Column(String)
-    # last_call_long = Column(String)
+    last_call_giveaway = Column(String)
+    last_call_long = Column(String)
 
 
 class Game(Base):
