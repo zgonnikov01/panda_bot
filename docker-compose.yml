@@ -1,0 +1,41 @@
+version: '3.3'
+
+services:
+  panda-bot:
+    container_name: panda_bot
+    working_dir: /panda_bot
+    restart: always
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: sh -c "python bot.py"
+    depends_on:
+      - redis
+      - db
+    environment:
+      - TZ=Europe/Moscow
+  redis:
+    image: redis:7
+    restart: always
+    ports:
+      - 6379:6379
+    volumes:
+      - redis_data:/data
+    environment:
+      - TZ=Europe/Moscow
+  db:
+    image: postgres:15
+    restart: always
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    ports:
+      - 6543:5432
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=db
+      - TZ=Europe/Moscow
+
+volumes:
+  postgres_data:
+  redis_data:

@@ -1,0 +1,360 @@
+import asyncio
+from aiogram import Router, Bot, F
+from aiogram.filters import Command, StateFilter, CommandStart
+from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, InputMediaPhoto
+from aiogram.types.chat import Chat
+from datetime import datetime
+
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import default_state
+
+from config_data.config import load_config
+from lexicon.lexicon_ru import LEXICON
+from models.methods import save_user, get_user, update_user, get_game, get_promos, save_game_result
+from models.models import User, Game, GameResult
+from handlers.admin_handlers import GameCallback
+from states.states import FSMRegister, FSMInGame
+from keyboards.set_menu import set_user_menu
+from keyboards.keyboard_utils import create_inline_kb
+
+config = load_config()
+router = Router()
+
+
+@router.message(CommandStart(), lambda message: message.from_user.id not in config.tg_bot.admin_ids)
+async def process_start_command(message: Message, bot: Bot, state: FSMContext):
+    await message.answer(LEXICON['user_start'])
+    await set_user_menu(message.from_user.id, bot)
+    print(message.from_user.id)
+
+
+@router.message(Command(commands='register'), StateFilter(default_state))
+async def process_register_command(message: Message):
+    if get_user(message.from_user.id):
+        await message.answer(
+            text='Вы уже зарегистрированы, уверены, что хотите пройти процесс заново?', 
+            reply_markup=create_inline_kb(2, {'Да': 'perform_registration', 'Отмена': 'cancel_registration'})
+        )
+    else:
+        await message.answer(
+            text = 'Мне нужны некоторые данные, чтобы вы могли поучаствовать в играх, давайте их заполним?',
+            reply_markup=create_inline_kb(2, {'Да': 'perform_registration', 'Отмена': 'cancel_registration'})
+        )
+
+
+@router.callback_query(StateFilter(default_state), F.data.in_(['perform_registration', 'cancel_registration']))
+async def process_register_callback(callback: CallbackQuery, state: FSMContext):
+    if callback.data == 'perform_registration':
+        await callback.message.answer(LEXICON['user_registration_ask_name'])
+        await state.set_state(FSMRegister.set_name)
+    await callback.answer()
+    await callback.message.delete()
+
+
+@router.message(StateFilter(FSMRegister.set_name), F.text)
+async def process_set_name(message: Message, state: FSMContext):
+    await state.update_data(username=message.from_user.username)
+    # await message.answer(f'Хорошо, {message.text}, теперь пожалуйста укажите ваш адрес электронной почты')
+    await message.answer(LEXICON['user_registration_ask_mail'] % message.text)
+    await state.update_data(name=message.text)
+    await state.set_state(FSMRegister.set_mail)
+
+
+@router.message(StateFilter(FSMRegister.set_name), ~F.text)
+async def process_set_name_error(message: Message):
+    await message.answer('Извините, я вас не понимаю. Напишите пожалуйста ваше имя')
+
+
+@router.message(StateFilter(FSMRegister.set_mail), F.text)
+async def process_set_mail(message: Message, state: FSMContext):
+    await message.answer(LEXICON['user_registration_ask_phone'])
+    await state.update_data(mail=message.text)
+    await state.set_state(FSMRegister.set_phone)
+
+
+@router.message(StateFilter(FSMRegister.set_mail), ~F.text)
+async def process_set_mail_error(message: Message):
+    await message.answer('Извините, я вас не понимаю. Напишите пожалуйста ваш адрес электронной почты')
+
+
+@router.message(StateFilter(FSMRegister.set_phone), F.text)
+async def process_set_phone(message: Message, state: FSMContext):
+    phone = ''.join(x for x in message.text if x.isdigit())
+    await state.update_data(phone=phone)
+    user = get_user(message.from_user.id)
+    if user:
+        await state.update_data(points=user.points)
+        await state.update_data(is_admin=user.is_admin)
+        update_user(message.from_user.id, await state.get_data())
+    else:
+        await state.update_data(points=0)
+        await state.update_data(is_admin=False)
+        await state.update_data(user_id=message.from_user.id)
+        save_user(User(**await state.get_data()))
+    
+    await message.answer(LEXICON['user_registration_greeting'])
+    await state.clear()
+
+
+@router.message(StateFilter(FSMRegister.set_phone), ~F.text)
+async def process_set_phone_error(message: Message):
+    await message.answer('Извините, я вас не понимаю. Напишите пожалуйста ваш номер телефона')
+
+
+# @router.callback_query(StateFilter(default_state), GameCallback.filter(F.type == 'text'))
+# async def process_start_game(query: CallbackQuery, callback_data: GameCallback, bot: Bot, state: FSMContext):
+#     game = get_game(callback_data.label)
+#     images = game.images.split('|')
+#     await bot.send_media_group(
+#                 chat_id=int(query.message.chat.id),
+#                 media=[InputMediaPhoto(media=images[0], caption=game.text)] + \
+#                                               [InputMediaPhoto(media=url) for url in images[1:]])
+#     await query.answer()
+#     await query.message.delete()
+#     await state.set_state(FSMInGame.text)
+#     await state.update_data(game_label=callback_data.label)
+
+
+@router.callback_query(StateFilter(default_state), GameCallback.filter(F.type == 'select'))
+async def process_start_game_select(query: CallbackQuery, callback_data: GameCallback, bot: Bot, state: FSMContext):
+    round = 1
+    await state.update_data(round=round)
+    game = get_game(label=callback_data.sequence_label + f'-{round}')
+    images = game.images.split('|')
+    await bot.send_media_group(
+                chat_id=int(query.message.chat.id),
+                media=[InputMediaPhoto(media=images[0], caption=game.text)] + \
+                      [InputMediaPhoto(media=url) for url in images[1:]]    
+    )
+    
+    if len(game.answers.split('|')) > 1:
+        await state.set_state(FSMInGame.multiple)
+
+        markup = create_inline_kb(
+            1,
+            {option.strip(): option.strip() for option in game.options.split()},
+            last_btn={'Подтвердить': 'CONFIRM'}
+        )
+
+        await bot.send_message(
+            chat_id=query.message.chat.id,
+            text='Выберите один или несколько вариантов ответа, а затем нажмите на кнопку подтверждения',
+            reply_markup=markup
+        )
+
+    else:
+        await state.set_state(FSMInGame.single)
+
+        markup = create_inline_kb(
+            1,
+            {option.strip(): option.strip() for option in game.options.split('|')}
+        )
+
+        msg = await bot.send_message(
+            chat_id=query.message.chat.id,
+            text='Каким будет ваш ответ?',
+            reply_markup=markup
+        )
+        
+        await state.update_data(
+            msg_id=msg.message_id,
+            msg_date=msg.date.isoformat(),
+            msg_chat_id=msg.chat.id,
+            msg_chat_type=msg.chat.type
+        )
+
+    await query.answer()
+    await query.message.delete()
+    await state.update_data(sequence_label=callback_data.sequence_label)
+
+
+@router.callback_query(StateFilter(FSMInGame.single))
+async def process_play_game_single(callback: CallbackQuery, bot: Bot, state: FSMContext):
+    round = (await state.get_data())['round']
+    game: Game = get_game(label=(await state.get_data())['sequence_label'] + f'-{round}')
+
+    msg_id = (await state.get_data())['msg_id']
+    msg_date = datetime.fromisoformat((await state.get_data())['msg_date'])
+    msg_chat = Chat(id=(await state.get_data())['msg_chat_id'], type=(await state.get_data())['msg_chat_type'])
+    msg: Message = Message(
+        message_id=msg_id,
+        date=msg_date,
+        chat=msg_chat
+    ).as_(bot)
+    #update_user(callback.from_user.id, {'last_call': ''})
+    save_game_result(
+        game_result=GameResult(
+            username=callback.from_user.username,
+            label=game.label,
+            sequence_label=game.sequence_label,
+            is_correct=callback.data in game.answers.split('|')
+        )
+    )
+    await asyncio.sleep(0.3)
+    if callback.data in game.answers.split('|'):
+        await callback.message.answer(LEXICON['user_answer_correct'])
+        await asyncio.sleep(0.2)
+        await callback.message.answer(game.full_answer)
+        # update_user(user_id=callback.from_user.id, updates={'points': get_user(callback.from_user.id).points + 100})
+
+    else:
+        await callback.message.answer(LEXICON['user_answer_incorrect'])
+        await asyncio.sleep(0.2)
+        await callback.message.answer(game.full_answer)
+    await callback.answer()
+    await msg.edit_reply_markup(None)
+    await asyncio.sleep(0.5)
+    if get_game(label=game.sequence_label + f'-{round + 1}') != None:
+        round += 1
+        await state.update_data(round=round)
+        game = get_game(label=game.sequence_label + f'-{round}')
+        images = game.images.split('|')
+        await bot.send_media_group(
+                    chat_id=int(callback.message.chat.id),
+                    media=[InputMediaPhoto(media=images[0], caption=game.text)] + \
+                        [InputMediaPhoto(media=url) for url in images[1:]]    
+        )
+        await asyncio.sleep(0.5)
+        if len(game.answers.split('|')) > 1:
+            await state.set_state(FSMInGame.multiple)
+
+            markup = create_inline_kb(
+                1,
+                {option.strip(): option.strip() for option in game.options.split()},
+                last_btn={'Подтвердить': 'CONFIRM'}
+            )
+
+            await bot.send_message(
+                chat_id=callback.message.chat.id,
+                text='Выберите один или несколько вариантов ответа, а затем нажмите на кнопку подтверждения',
+                reply_markup=markup
+            )
+
+        else:
+            await state.set_state(FSMInGame.single)
+
+            markup = create_inline_kb(
+                1,
+                {option.strip(): option.strip() for option in game.options.split('|')}
+            )
+
+            msg = await bot.send_message(
+                chat_id=callback.message.chat.id,
+                text='Каким будет ваш ответ?',
+                reply_markup=markup
+            )
+            
+            await state.update_data(
+                msg_id=msg.message_id,
+                msg_date=msg.date.isoformat(),
+                msg_chat_id=msg.chat.id,
+                msg_chat_type=msg.chat.type
+            )
+
+        await callback.answer()
+        await callback.message.delete()
+        await state.update_data(game_label=game.label)
+    else:
+        await callback.message.answer('🐼 Спасибо за участие в игре!\nСкоро Бо подведёт итоги и мы узнаем, кто сегодня выиграл подарки 🎁 от Панда Маркет!')
+        await state.clear()
+    print(await state.get_state())
+
+
+# @router.callback_query(StateFilter(FSMInGame.multiple))
+# async def process_play_game_single(callback: CallbackQuery, bot: Bot, state: FSMContext):
+#     game = get_game((await state.get_data())['game_label'])
+#     if callback.data in game.answers.split('|'):
+#         await message.answer('Your')
+
+@router.message(StateFilter(FSMInGame.text), F.text)
+async def process_play_game_text(message: Message, state: FSMContext):
+    game: Game = get_game(label=(await state.get_data())['game_label'])
+    save_game_result(
+        game_result=GameResult(
+            username=message.from_user.username,
+            label=game.label,
+            sequence_label=game.sequence_label,
+            is_correct=message.text in game.answers
+        )
+    )
+    if message.text in game.answers:
+        await message.answer('Ответ верный!')
+        await message.answer(game.full_answer)
+    else:
+        await message.answer('К сожалению, вы ответили неправильно(\nНо не нужно расстраиваться, следующая игра совсем скоро!')
+        await message.answer(game.full_answer)
+    await state.clear()
+    
+    
+# @router.callback_query(StateFilter(FSMInGame.multiple), F.data.not_in(['CONFIRM']))
+# async def process_play_game_multiple_get_answers(callback: CallbackQuery, state: FSMContext):
+#     game = get_game((await state.get_data())['game_label'])
+#     print(f'<{callback.data}>')
+#     if 'user_answers' not in await state.get_data():
+#         await state.update_data(user_answers = [])
+#     await state.update_data(user_answers=await state.get_data()['user_answers'] + [callback.message.text])
+
+
+# @router.callback_query(StateFilter(FSMInGame.multiple))
+# async def process_play_game_multiple(callback: CallbackQuery, state: FSMContext):
+#     game = get_game((await state.get_data())['label'])
+#     print(f'<{callback.data}>')
+#     user_answers = await state.get_data['user_answers']
+#     if user_answers == [x.strip() for x in game.answers.split('|')]:
+#         await callback.message.answer(game.full_answer)
+#         await callback.message.answer('Ответ верный! Вам начислены бонусные баллы!')
+
+#         update_user(user_id=callback.from_user.id, updates={'points': get_user(callback.from_user.id).points + 100})
+#     else:
+#         await callback.message.answer(game.full_answer)
+#         await callback.message.answer('К сожалению, вы ответили не правильно(\nНо не нужно расстраиваться, следующая игра совсем скоро!')
+#     await callback.answer()
+#     await callback.message.edit_reply_markup(None)
+#     await state.clear()
+
+
+# @router.message(StateFilter(default_state), Command(commands='points'))
+# async def get_points(message: Message):
+#     await message.answer(f'Ваши баллы: {get_user(message.from_user.id).points}')
+
+
+@router.message(StateFilter(default_state), Command(commands='help'))
+async def process_help_command(message: Message):
+    await message.answer(LEXICON['user_help'])
+
+
+@router.message(StateFilter(default_state), Command(commands='info'))
+async def process_help_command(message: Message):
+    await message.answer(LEXICON['user_panda_info'])
+
+
+@router.message(StateFilter(default_state), Command(commands='promo'))
+async def process_promo_command(message: Message, bot: Bot):
+    user = get_user(message.from_user.id)
+    if user != None:
+        promos = get_promos(active=True)
+        if len(promos) == 0:
+            await message.answer('К сожалению, у Бо сейчас нет промо-кодов( Но не расстраивайтесь, в ближайшее время они появятся!')
+        else:
+            await message.answer('Актуальные промокоды от Бо!')
+            images = [promo.image for promo in promos]
+            descriptions = [promo.description for promo in promos]
+            for promo in promos:
+                await bot.send_photo(
+                    chat_id=message.from_user.id,
+                    photo=promo.image,
+                    caption=promo.description
+                )
+            # await bot.send_media_group(
+            #         chat_id=int(message.from_user.id),
+            #         # media=[InputMediaPhoto(media=images[0], caption='Актуальные промо-коды от Бо!')] + \
+            #         #                               [InputMediaPhoto(media=url) for url in images[1:]]
+            #         media=[InputMediaPhoto(media=url) for url in images]
+            # )
+    else:
+        await message.answer('Для получения промо-кодов нужно зарегистрироваться! Напишите /register')
+
+
+@router.message(lambda message: message.chat.id not in config.tg_bot.admin_ids)
+async def echo(message: Message):
+    await message.answer('Извините, я вас не понимаю')
