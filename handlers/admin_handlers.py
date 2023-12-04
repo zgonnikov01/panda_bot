@@ -9,14 +9,16 @@ from datetime import datetime, timedelta
 
 from config_data.config import load_config
 from lexicon.lexicon_ru import LEXICON
-from models.models import Game, Promo
+from models.models import Game, Promo, Giveaway
 from models.methods import save_game, get_users, get_game, save_promo, get_promo,\
-    get_promos, toggle_promo, delete_promo, update_user, get_game_results, get_user_by_username
+    get_promos, toggle_promo, delete_promo, update_user, get_game_results, \
+    get_user_by_username, get_giveaway
 from states.states import FSMCreateGame, FSMScheduleGame, FSMEchoPost, FSMStopGame,\
     FSMSavePromo, FSMEditPromos, FSMMessageUsers, FSMMessageUser, FSMGetGameResults, \
     FSMScheduleGiveaway
 from keyboards.set_menu import set_admin_menu
 from keyboards.keyboard_utils import create_inline_kb
+from scheduling.scheduling import scheduler
 
 
 class GameCallback(CallbackData, prefix='game'):
@@ -24,7 +26,7 @@ class GameCallback(CallbackData, prefix='game'):
     sequence_label: str
 
 class GiveawayCallback(CallbackData, prefix='giveaway'):
-    crutch: str
+    label: str
 
     
 config = load_config()
@@ -244,17 +246,13 @@ async def process_stop_game_command(message: Message, bot: Bot, state: FSMContex
     for user in users:
         print(user.username, user.last_call)
         if user.last_call != None and user.last_call != '':
-            msg_list = user.last_call.split('|')
-            msg: Message = Message(
-                message_id=msg_list[0],
-                date=msg_list[1],
-                chat=Chat(id=msg_list[2], type=msg_list[3])
-            ).as_(bot)
+            msg: Message = await message.send_copy(user_id=user.user_id)
             try:
                 await msg.delete()
             except:
                 print('Exception: Cannot delete non-existing message')
-            update_user(user.user_id, {'last_call': None})
+            finally:
+                update_user({'last_call': None})
             # await bot.send_message(
             #     chat_id=user.user_id,
             #     text='Спасибо за участие в игре!\nСкоро Бо подведёт итоги и назовёт победителя 🏆'
@@ -320,7 +318,16 @@ async def get_game_results_get_label(message: Message, state: FSMContext):
 
 @router.message(StateFilter(default_state), Command(commands='giveaway'))
 async def process_giveaway_command(message: Message, state: FSMContext):
-    await message.answer('Задать таймфрейм отправки сообщения: введите datetime в iso-формате и через | продолжительность в минутах (например, 2023-12-01T20:26|180)')
+    await message.answer('Запуск розыгрыша: введите уникальный идентификатор')
+    await state.set_state(FSMScheduleGiveaway.get_label)
+    print(await state.get_state())
+
+
+@router.message(StateFilter(FSMScheduleGiveaway.get_label))
+async def process_giveaway_command(message: Message, state: FSMContext):
+    await state.update_data(label=message.text)
+
+    await message.answer('Теперь нужно задать таймфрейм отправки сообщения: введите datetime в iso-формате и через | продолжительность в минутах (например, 2023-12-01T20:26|180)')
     await state.set_state(FSMScheduleGiveaway.get_time)
     print(await state.get_state())
 
@@ -338,44 +345,68 @@ async def get_giveaway_time(message: Message, state: FSMContext):
         await message.answer('Что-то пошло не так, попробуйте снова')
     print(await state.get_state())
 
-from scheduling.scheduling import scheduler
 
-async def jobfunc():
-    print(datetime.now().isoformat())
-async def destroy_job(myjob):
-    # myjob.remove()
-    print('Trying to remove job!')
-    scheduler.remove_job('myjob_id')
-    print('Job destroyed!')
+async def jobfunc(message: Message, bot: Bot, label):
+    users = get_users()
+    markup=create_inline_kb(1, {'Участвовать!': GiveawayCallback(label=label).pack()})
+    for user in users:
+        print(user.username, user.last_call_giveaway)
+        if user.last_call_giveaway == None or user.last_call_giveaway == '':
+            print(user.last_call_giveaway)
+            try:
+                msg: Message = await message.send_copy(chat_id=user.user_id, reply_markup=markup)
+                msg_id=msg.message_id
+                msg_date=msg.date.isoformat()
+                msg_chat_id=msg.chat.id
+                msg_chat_type=msg.chat.type
+                update_user(user.user_id, {'last_call_giveaway': f'{msg_id}|{msg_date}|{msg_chat_id}|{msg_chat_type}'})
+                
+                print(f'Сообщение отправлено пользователю {user.user_id} ({user.username})')
+            except:
+                print(f'Пользователь {user.user_id} ({user.username}) заблокировал бота (мб)')
+            
+
+async def destroy_job(myjob, bot: Bot, label):
+    # scheduler.remove_job('myjob_id')
+    print('Завершение розыгрыша: ' + datetime.now().isoformat())
+    for user in get_users():
+        if user.last_call_giveaway != None and user.last_call_giveaway != '':
+            try:
+                msg_list = user.last_call_giveaway.split('|')
+                msg: Message = Message(
+                    message_id=msg_list[0],
+                    date=msg_list[1],
+                    chat=Chat(id=msg_list[2], type=msg_list[3])
+                ).as_(bot)
+                if not get_giveaway(label=label, user_id=user.user_id):
+                    try:
+                        await msg.delete()
+                    except:
+                        print(f'Невозможно удалить сообщение для пользователя {user.user_id} ({user.username})')
+                else:
+                    await bot.send_message(
+                        chat_id=user.user_id,
+                        text='Спасибо за участие в розыгрыше! Скоро Бо подведёт итоги!'
+                    )
+            except:
+                print(f'Пользователь {user.user_id} ({user.username}) заблокировал бота (мб)')
+            finally:
+                update_user(user.user_id, {'last_call_giveaway': None})
+    myjob.remove()
+    print('Розыгрыш окончен: ' + datetime.now().isoformat())
 
 
 @router.message(StateFilter(FSMScheduleGiveaway.get_message))
 async def get_giveaway_time(message: Message, state: FSMContext, bot=Bot):
     time_start = datetime.fromisoformat((await state.get_data())['time_start'])
     time_stop = datetime.fromisoformat((await state.get_data())['time_stop'])
-    # markup=create_inline_kb(1, {'Участвовать!': GiveawayCallback(crutch='crutch').pack()})
-    # for user in get_users(is_admin=True):
-    #     await bot.copy_message(
-    #         message_id=message.message_id,
-    #         from_chat_id=message.from_user.id,
-    #         chat_id=user.user_id,
-    #         reply_markup=markup
-    #     )
-    myjob = scheduler.add_job(jobfunc, 'interval', seconds=1, id='myjob_id')
+    label = (await state.get_data())['label']
+    myjob = scheduler.add_job(jobfunc, 'interval', seconds=15, args=[message, bot, label])
     print(time_stop)
-    scheduler.add_job(destroy_job, 'date', run_date=time_stop, args=[myjob])
+    scheduler.add_job(destroy_job, 'date', run_date=time_stop, args=[myjob, bot, label])
     await message.answer('Готово!')
     await state.clear()
     print(await state.get_state())
-
-# msg_id=msg.message_id
-# msg_date=msg.date.isoformat()
-# msg_chat_id=msg.chat.id
-# msg_chat_type=msg.chat.type
-# update_user(user.user_id, {'last_call': f'{msg_id}|{msg_date}|{msg_chat_id}|{msg_chat_type}'})
-
-
-
 
 
 @router.message(StateFilter(default_state), Command(commands='message_users'))

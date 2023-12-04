@@ -76,3 +76,17 @@ class GameResult(Base):
     label = Column(String, index=True)
     sequence_label = Column(String, index=True)
     is_correct = Column(Boolean)
+
+
+class Giveaway(Base):
+    __tablename__ = 'giveaways'
+    id = Column(
+        Integer,
+        nullable=False,
+        unique=True,
+        primary_key=True,
+        autoincrement=True
+    )
+    label = Column(String)
+    username = Column(String)
+    user_id = Column(BigInteger, index=True)

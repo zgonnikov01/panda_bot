@@ -10,9 +10,9 @@ from aiogram.fsm.state import default_state
 
 from config_data.config import load_config
 from lexicon.lexicon_ru import LEXICON
-from models.methods import save_user, get_user, update_user, get_game, get_promos, save_game_result
-from models.models import User, Game, GameResult
-from handlers.admin_handlers import GameCallback
+from models.methods import save_user, get_user, update_user, get_game, get_promos, save_game_result, save_giveaway
+from models.models import User, Game, GameResult, Giveaway
+from handlers.admin_handlers import GameCallback, GiveawayCallback
 from states.states import FSMRegister, FSMInGame
 from keyboards.set_menu import set_user_menu
 from keyboards.keyboard_utils import create_inline_kb
@@ -101,6 +101,30 @@ async def process_set_phone_error(message: Message):
     await message.answer('Извините, я вас не понимаю. Напишите пожалуйста ваш номер телефона')
 
 
+@router.callback_query(GiveawayCallback.filter())
+async def process_start_game_select(query: CallbackQuery, callback_data: GameCallback, bot: Bot, state: FSMContext):
+    label=callback_data.label
+    save_giveaway(
+        Giveaway(
+            user_id=query.message.chat.id,
+            username=query.message.chat.username,
+            label=label
+        )
+    )
+    await query.message.answer('Бо зарегистрировал тебя для участия в розыгрыше!')
+    user = get_user(query.message.chat.id)
+    msg_list = user.last_call_giveaway.split('|')
+    msg: Message = Message(
+        message_id=msg_list[0],
+        date=msg_list[1],
+        chat=Chat(id=msg_list[2], type=msg_list[3])
+    ).as_(bot)
+    try:
+        await msg.delete_reply_markup()
+    except:
+        print('Exception: Cannot delete non-existing message')
+
+
 # @router.callback_query(StateFilter(default_state), GameCallback.filter(F.type == 'text'))
 # async def process_start_game(query: CallbackQuery, callback_data: GameCallback, bot: Bot, state: FSMContext):
 #     game = get_game(callback_data.label)
@@ -181,6 +205,10 @@ async def process_play_game_single(callback: CallbackQuery, bot: Bot, state: FSM
         date=msg_date,
         chat=msg_chat
     ).as_(bot)
+    try:
+        msg.edit_reply_markup(reply_markup=None)
+    except:
+        print('can\'t remove reply markup from giveaway message')
     #update_user(callback.from_user.id, {'last_call': ''})
     save_game_result(
         game_result=GameResult(

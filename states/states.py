@@ -20,6 +20,7 @@ class FSMScheduleGame(StatesGroup):
 
 
 class FSMScheduleGiveaway(StatesGroup):
+    get_label = State()
     get_time = State()
     get_message = State()
     confirm = State()

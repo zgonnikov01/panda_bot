@@ -2,7 +2,7 @@ from sqlalchemy import create_engine, select, delete
 from sqlalchemy.orm import Session
 from config_data.config import load_config
 
-from models.models import Base, Game, User, Promo, GameResult
+from models.models import Base, Game, User, Promo, GameResult, Giveaway
 
 #sqlite_file_name = "models/database.db"
 #sqlite_url = f'sqlite:///{sqlite_file_name}'
@@ -62,11 +62,34 @@ def get_game(label=None, sequence_label=None):
         game = session.scalars(statement).first()
     return game
 
+
+def get_giveaways():
+    with Session(engine) as session:
+        statement = select(Giveaway)
+        giveaways = session.scalars(statement).all()
+    return giveaways
+
+def get_giveaway(label, user_id=None):
+    with Session(engine) as session:
+        statement = select(Giveaway).where(Giveaway.label == label)
+        if user_id != None:
+            statement = statement.where(Giveaway.user_id == user_id)
+        giveaway = session.scalars(statement).first()
+    return giveaway
+
+
+def save_giveaway(giveaway: Giveaway):
+    with Session(engine) as session:
+        session.add(giveaway)
+        session.commit()
+
+
 def save_user(user: User):
     with Session(engine) as session:
         user.is_admin = user.user_id in config.tg_bot.admin_ids
         session.add(user)
         session.commit()
+
 
 def update_user(user_id: int, updates: dict):
     with Session(engine) as session:
