@@ -364,7 +364,6 @@ async def jobfunc(message: Message, bot: Bot, label):
                 print(f'Сообщение отправлено пользователю {user.user_id} ({user.username})')
             except:
                 print(f'Пользователь {user.user_id} ({user.username}) заблокировал бота (мб)')
-            
 
 async def destroy_job(myjob, bot: Bot, label):
     # scheduler.remove_job('myjob_id')
