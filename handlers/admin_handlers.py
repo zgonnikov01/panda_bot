@@ -246,7 +246,7 @@ async def process_stop_game_command(message: Message, bot: Bot, state: FSMContex
     for user in users:
         print(user.username, user.last_call)
         if user.last_call != None and user.last_call != '':
-            msg: Message = await message.send_copy(user_id=user.user_id)
+            msg: Message = await message.send_copy(chat_id=user.user_id)
             try:
                 await msg.delete()
             except:
