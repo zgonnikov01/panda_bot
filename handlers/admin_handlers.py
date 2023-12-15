@@ -252,7 +252,7 @@ async def process_stop_game_command(message: Message, bot: Bot, state: FSMContex
             except:
                 print('Exception: Cannot delete non-existing message')
             finally:
-                update_user({'last_call': None})
+                update_user(user.user_id, {'last_call': None})
             # await bot.send_message(
             #     chat_id=user.user_id,
             #     text='Спасибо за участие в игре!\nСкоро Бо подведёт итоги и назовёт победителя 🏆'
