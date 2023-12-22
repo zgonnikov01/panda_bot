@@ -137,14 +137,21 @@ async def process_set_label(message: Message, state: FSMContext):
 async def process_set_label(message: Message, state: FSMContext):
     await state.update_data(label=message.text)
 
+    
+
+    await state.set_state(FSMCreateGame.get_final_message)
+    print(await state.get_state())
+
+
+@router.message(StateFilter(FSMCreateGame.get_final_message))
+async def process_get_final_message(message: Message, state: FSMContext):
+    await state.update_data(final_message=message.text)
     await message.answer(
         text='Отлично! Теперь нужно загрузить картинки для игры, когда все картинки будут загружены, нажмите на кнопку',
         reply_markup=create_inline_kb(1, {'Готово': 'images_uploaded'})
     )
-
     await state.set_state(FSMCreateGame.upload_pictures)
     print(await state.get_state())
-
 
 @router.message(StateFilter(FSMCreateGame.upload_pictures), F.photo)
 async def process_upload_pictures(message: Message, state: FSMContext):
@@ -368,6 +375,7 @@ async def jobfunc(message: Message, bot: Bot, label):
 async def destroy_job(myjob, bot: Bot, label):
     # scheduler.remove_job('myjob_id')
     print('Завершение розыгрыша: ' + datetime.now().isoformat())
+    myjob.remove()
     for user in get_users():
         if user.last_call_giveaway != None and user.last_call_giveaway != '':
             try:
@@ -391,7 +399,7 @@ async def destroy_job(myjob, bot: Bot, label):
                 print(f'Пользователь {user.user_id} ({user.username}) заблокировал бота (мб)')
             finally:
                 update_user(user.user_id, {'last_call_giveaway': None})
-    myjob.remove()
+    
     print('Розыгрыш окончен: ' + datetime.now().isoformat())
 
 
@@ -418,8 +426,10 @@ async def process_message_users_command(message: Message, state: FSMContext):
 @router.message(StateFilter(FSMMessageUsers.get_text))
 async def get_message_to_user_text(message: Message, bot: Bot, state: FSMContext):
     for user in get_users():
-        await message.send_copy(chat_id=user.user_id)
-
+        try:
+            await message.send_copy(chat_id=user.user_id)
+        except:
+            print(f'PENCIL ALARM {user.username} ({user.user_id})')
     await message.answer('Сообщение отправлено!')
     await state.clear()
     print(await state.get_state())

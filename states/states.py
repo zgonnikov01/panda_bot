@@ -11,6 +11,7 @@ class FSMCreateGame(StatesGroup):
     set_sequence_label = State()
     upload_pictures = State()
     set_full_answer = State()
+    get_final_message = State()
     
 
 class FSMScheduleGame(StatesGroup):

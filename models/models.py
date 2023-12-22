@@ -45,6 +45,7 @@ class Game(Base):
     answers = Column(String)
     images = Column(String)
     full_answer = Column(String)
+    final_message = Column(String)
     # scheduled_time = Column(DateTime)
 
 
