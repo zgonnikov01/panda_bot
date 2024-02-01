@@ -242,18 +242,29 @@ async def process_get_label(callback: CallbackQuery, state: FSMContext, bot: Bot
 
 @router.message(StateFilter(default_state), Command(commands='stop_game'))
 async def process_stop_game_command(message: Message, state: FSMContext):
-    await message.answer('Введите сообщение для отправки по окончании игры')
-    await state.set_state(FSMStopGame.stop)
+    await message.answer('Введите идентификатор последовательности')
+    await state.set_state(FSMStopGame.get_label)
     print(await state.get_state())
 
 
-@router.message(StateFilter(FSMStopGame.stop))
+@router.message(StateFilter(FSMStopGame.get_label))
 async def process_stop_game_command(message: Message, bot: Bot, state: FSMContext):
+    await message.answer('Введите сообщение для отправки по окончании игры')
+    await state.update_data({'sequence_label': message.text})
+    await state.set_state(FSMStopGame.stop)
+    print(await state.get_state())
+    
+
+@router.message(StateFilter(FSMStopGame.stop))
+async def process_stop_game_get_label(message: Message, bot: Bot, state: FSMContext):
+    sequence_label = await state.get_data()['sequence_label']
     users = get_users()
+    participants = set([x.username for x in get_game_results(sequence_label=sequence_label)])
     for user in users:
         print(user.username, user.last_call)
         if user.last_call != None and user.last_call != '':
-            msg: Message = await message.send_copy(chat_id=user.user_id)
+            if user.username in participants:
+                msg: Message = await message.send_copy(chat_id=user.user_id)
             try:
                 await msg.delete()
             except:

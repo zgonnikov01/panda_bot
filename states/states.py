@@ -29,6 +29,7 @@ class FSMScheduleGiveaway(StatesGroup):
 
 class FSMStopGame(StatesGroup):
     stop = State()
+    get_label = State()
 
 
 class FSMRegister(StatesGroup):
