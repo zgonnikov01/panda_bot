@@ -264,11 +264,12 @@ async def process_stop_game_get_label(message: Message, bot: Bot, state: FSMCont
         print(user.username, user.last_call)
         #if user.last_call != None and user.last_call != '':
         if user.username in participants:
-            msg: Message = await message.send_copy(chat_id=user.user_id)
             try:
-                await msg.delete()
+                msg: Message = await message.send_copy(chat_id=user.user_id)
+                # await msg.delete()
             except:
-                print('Exception: Cannot delete non-existing message')
+                # print('Exception: Cannot delete non-existing message')
+                print('Exception: bot blocked by user')
             finally:
                 update_user(user.user_id, {'last_call': None})
             # await bot.send_message(
