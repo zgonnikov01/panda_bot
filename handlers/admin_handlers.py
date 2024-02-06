@@ -257,7 +257,7 @@ async def process_stop_game_command(message: Message, bot: Bot, state: FSMContex
 
 @router.message(StateFilter(FSMStopGame.stop))
 async def process_stop_game_get_label(message: Message, bot: Bot, state: FSMContext):
-    sequence_label = await state.get_data()['sequence_label']
+    sequence_label = (await state.get_data())['sequence_label']
     users = get_users()
     participants = set([x.username for x in get_game_results(sequence_label=sequence_label)])
     for user in users:
