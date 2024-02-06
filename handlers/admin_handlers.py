@@ -262,9 +262,9 @@ async def process_stop_game_get_label(message: Message, bot: Bot, state: FSMCont
     participants = set([x.username for x in get_game_results(sequence_label=sequence_label)])
     for user in users:
         print(user.username, user.last_call)
-        if user.last_call != None and user.last_call != '':
-            if user.username in participants:
-                msg: Message = await message.send_copy(chat_id=user.user_id)
+        #if user.last_call != None and user.last_call != '':
+        if user.username in participants:
+            msg: Message = await message.send_copy(chat_id=user.user_id)
             try:
                 await msg.delete()
             except:
