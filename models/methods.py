@@ -47,10 +47,10 @@ def save_game(game: Game):
         session.commit()
 
 
-def update_game(sequence_label: str, updates: dict):
+def update_game(label: str, updates: dict):
     with Session(engine) as session:
         session.query(Game).\
-            filter(Game.label == sequence_label).\
+            filter(Game.label == label).\
             update(updates)
         session.commit()
 
