@@ -119,7 +119,7 @@ async def process_load_json_game_command_load_pictures(message: Message, state: 
 
 
 
-@router.callback_query(StateFilter(FSMLoadJsonGame.save))
+@router.callback_query(StateFilter(FSMLoadJsonGame.load_pictures))
 async def process_load_json_game_command_save(callback: CallbackQuery, state: FSMContext):
     print(await state.get_data())
     sequence_label = (await state.get_data())['sequence_label']

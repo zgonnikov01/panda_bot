@@ -18,7 +18,6 @@ class FSMLoadJsonGame(StatesGroup):
     set_sequence_label = State()
     load_json = State()
     load_pictures = State()
-    save = State()
 
 
 class FSMScheduleGame(StatesGroup):
