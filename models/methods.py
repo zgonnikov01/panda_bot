@@ -50,7 +50,7 @@ def save_game(game: Game):
 def update_game(sequence_label: str, updates: dict):
     with Session(engine) as session:
         session.query(Game).\
-            filter(Game.label == label).\
+            filter(Game.label == sequence_label).\
             update(updates)
         session.commit()
 
