@@ -17,7 +17,7 @@ from models.methods import save_game, get_users, get_game, save_promo, get_promo
     get_user_by_username, get_giveaway, update_game
 from states.states import FSMCreateGame, FSMScheduleGame, FSMEchoPost, FSMStopGame,\
     FSMSavePromo, FSMEditPromos, FSMMessageUsers, FSMMessageUser, FSMGetGameResults, \
-    FSMScheduleGiveaway, FSMLoadJsonGame
+    FSMScheduleGiveaway, FSMLoadJsonGame, FSMPost
 from keyboards.set_menu import set_admin_menu
 from keyboards.keyboard_utils import create_inline_kb
 from scheduling.scheduling import scheduler
@@ -557,6 +557,32 @@ async def process_list_users_command(message: Message):
     await message.answer(str(len(get_users())))
     #arstarstarstarstarst
     # await message.answer('\n'.join([f'Имя: {user.name}\nПрофиль: @{user.username}\nТелефон: {user.phone}\nID: {user.user_id}\nБаллы: {user.points}\n' for user in get_users()]))
+
+
+@router.message(Command(commands='post'), StateFilter(default_state))
+async def process_post_command(message: Message, state: FSMContext):
+    await state.set_state(FSMPost.post)
+    await message.answer('Отправьте пост вместе с картинкой (если она нужна)')
+
+
+@router.message(StateFilter(FSMPost.post))
+async def process_post_command_post(message: Message, bot: Bot, state: FSMContext):
+    urls = ['Подружиться с Пандой Бо! | https://t.me/panda_play_bot']
+    channel = '@pandamarket_club'
+    markup = None
+    if urls != '-':
+        text = urls.split('|')[0].strip()
+        url = urls.split('|')[1].strip()
+        markup = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text=text, url=url)]])
+    await bot.copy_message(
+        message_id=message.message_id,
+        from_chat_id=message.from_user.id,
+        chat_id=channel,
+        reply_markup=markup
+    )
+    await message.answer('Готово!')
+    await state.clear()
+    print(await state.get_state())
 
 
 @router.message(Command(commands='echo'), StateFilter(default_state))

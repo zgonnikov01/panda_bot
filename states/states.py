@@ -52,6 +52,10 @@ class FSMInGame(StatesGroup):
     repeat = State()
 
 
+class FSMPost(StatesGroup):
+    post = State()
+
+
 class FSMEchoPost(StatesGroup):
     echo = State()
     get_buttons = State()
