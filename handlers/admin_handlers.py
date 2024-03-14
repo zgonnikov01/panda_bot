@@ -125,7 +125,7 @@ async def process_load_json_game_command_save(callback: CallbackQuery, state: FS
     sequence_label = (await state.get_data())['sequence_label']
     images = (await state.get_data())['images'].split('|')
     for image in images:
-        update_game(sequence_label=sequence_label, updates={'image': image})
+        update_game(sequence_label=sequence_label, updates={'images': image})
     await state.clear()
     print(await state.get_state())
     await callback.message.delete()
