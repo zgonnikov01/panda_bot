@@ -1,3 +1,5 @@
+import json
+
 from aiogram import Router, Bot, F
 from aiogram.filters import Command, StateFilter, CommandStart
 from aiogram.filters.callback_data import CallbackData
@@ -12,10 +14,10 @@ from lexicon.lexicon_ru import LEXICON
 from models.models import Game, Promo, Giveaway
 from models.methods import save_game, get_users, get_game, save_promo, get_promo,\
     get_promos, toggle_promo, delete_promo, update_user, get_game_results, \
-    get_user_by_username, get_giveaway
+    get_user_by_username, get_giveaway, update_game
 from states.states import FSMCreateGame, FSMScheduleGame, FSMEchoPost, FSMStopGame,\
     FSMSavePromo, FSMEditPromos, FSMMessageUsers, FSMMessageUser, FSMGetGameResults, \
-    FSMScheduleGiveaway
+    FSMScheduleGiveaway, FSMLoadJsonGame
 from keyboards.set_menu import set_admin_menu
 from keyboards.keyboard_utils import create_inline_kb
 from scheduling.scheduling import scheduler
@@ -53,6 +55,80 @@ async def process_cancel_create_game_command(message: Message, state: FSMContext
     await message.answer('Отмена')
     await state.clear()
     print(await state.get_state())
+
+
+@router.message(Command(commands='load_json_game'), StateFilter(default_state))
+async def process_load_json_game_command(message: Message, state: FSMContext):
+    await message.answer('Введите уникальный идентификатор последовательности')
+    await state.set_state(FSMLoadJsonGame.set_sequence_label)
+    print(await state.get_state())
+
+
+@router.message(StateFilter(FSMLoadJsonGame.set_sequence_label))
+async def process_load_json_game_command_set_label(message: Message, state: FSMContext):
+    await state.update_data(sequence_label=message.text)
+    await message.answer('Отправьте JSON')
+    print(await state.get_state())
+
+
+@router.message(StateFilter(FSMLoadJsonGame.load_json))
+async def process_load_json_game_command_load_json(message: Message, state: FSMContext):
+    json_string = message.text
+
+    questions = json.loads(json_string)['вопросы']
+    for index, question in enumerate(questions):
+        question_text = question['вопрос']
+        options = list(question['варианты ответов'].values())
+        answer = question['варианты ответов'][question['правильный ответ']]
+        full_answer = question['пояснение']
+        print(options, answer, full_answer)
+        sequence_label = (await state.get_data())['sequence_label']
+        game = Game(
+            text=question_text,
+            sequence_label=sequence_label,
+            label=f'{sequence_label}-{index + 1}',
+            type='select',
+            options='|'.join(options),
+            answers=answer,
+            images='',
+            full_answer=full_answer,
+            final_message=''
+        )
+        save_game(game)
+        print(game)
+    await message.answer(
+            text='Отлично! Теперь нужно загрузить картинки для игры, когда все картинки будут загружены, нажмите на кнопку',
+            reply_markup=create_inline_kb(1, {'Готово': 'images_uploaded'})
+    )
+    await state.set_state(FSMLoadJsonGame.request_pictures)
+    print(await state.get_state())
+
+
+@router.message(StateFilter(FSMLoadJsonGame.load_pictures), F.photo)
+async def process_load_json_game_command_load_pictures(message: Message, state: FSMContext):
+    try:
+        images = (await state.get_data())['images']
+    except:
+        images = ''
+    if images == '':
+        await state.update_data(images=message.photo[-1].file_id)
+    else:
+        await state.update_data(images=images + '|' + message.photo[-1].file_id)
+    print(await state.get_state())
+
+
+
+@router.callback_query(StateFilter(FSMLoadJsonGame.save))
+async def process_load_json_game_command_save(callback: CallbackQuery, state: FSMContext):
+    print(await state.get_data())
+    sequence_label = (await state.get_data())['sequence_label']
+    images = (await state.get_data())['images'].split('|')
+    for image in images:
+        update_game(sequence_label=sequence_label, updates={'image': image})
+    await state.clear()
+    print(await state.get_state())
+    await callback.message.delete()
+    await callback.message.answer(text='Поздравляю, игра создана!')
 
 
 @router.message(Command(commands='create_game'), StateFilter(default_state))
@@ -121,6 +197,7 @@ async def process_set_full_answer(message: Message, state: FSMContext):
     await state.set_state(FSMCreateGame.set_sequence_label)
     print(await state.get_state())
 
+
 @router.message(StateFilter(FSMCreateGame.set_sequence_label))
 async def process_set_label(message: Message, state: FSMContext):
     await state.update_data(sequence_label=message.text)
@@ -152,6 +229,7 @@ async def process_get_final_message(message: Message, state: FSMContext):
     )
     await state.set_state(FSMCreateGame.upload_pictures)
     print(await state.get_state())
+
 
 @router.message(StateFilter(FSMCreateGame.upload_pictures), F.photo)
 async def process_upload_pictures(message: Message, state: FSMContext):

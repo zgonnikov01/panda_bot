@@ -46,6 +46,15 @@ def save_game(game: Game):
         session.add(game)
         session.commit()
 
+
+def update_game(label: str, updates: dict):
+    with Session(engine) as session:
+        session.query(Game).\
+            filter(Game.label == label).\
+            update(updates)
+        session.commit()
+
+
 def get_games():
     with Session(engine) as session:
         statement = select(Game)

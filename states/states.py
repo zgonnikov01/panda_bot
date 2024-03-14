@@ -14,6 +14,13 @@ class FSMCreateGame(StatesGroup):
     get_final_message = State()
     
 
+class FSMLoadJsonGame(StatesGroup):
+    set_sequence_label = State()
+    load_json = State()
+    load_pictures = State()
+    save = State()
+
+
 class FSMScheduleGame(StatesGroup):
     start = State()
     get_sequence_label = State()
