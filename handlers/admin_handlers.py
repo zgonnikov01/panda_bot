@@ -68,6 +68,7 @@ async def process_load_json_game_command(message: Message, state: FSMContext):
 async def process_load_json_game_command_set_label(message: Message, state: FSMContext):
     await state.update_data(sequence_label=message.text)
     await message.answer('Отправьте JSON')
+    await state.set_state(FSMLoadJsonGame.load_json)
     print(await state.get_state())
 
 
