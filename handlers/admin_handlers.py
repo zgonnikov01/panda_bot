@@ -100,7 +100,7 @@ async def process_load_json_game_command_load_json(message: Message, state: FSMC
             text='Отлично! Теперь нужно загрузить картинки для игры, когда все картинки будут загружены, нажмите на кнопку',
             reply_markup=create_inline_kb(1, {'Готово': 'images_uploaded'})
     )
-    await state.set_state(FSMLoadJsonGame.request_pictures)
+    await state.set_state(FSMLoadJsonGame.load_pictures)
     print(await state.get_state())
 
 
