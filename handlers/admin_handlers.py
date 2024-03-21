@@ -356,11 +356,6 @@ async def process_stop_game_get_label(message: Message, bot: Bot, state: FSMCont
             #     chat_id=user.user_id,
             #     text='Спасибо за участие в игре!\nСкоро Бо подведёт итоги и назовёт победителя 🏆'
             # )
-            try:
-                if msg.text != 'Давай поиграем?':
-                    await message.send_copy(chat_id=user.user_id)
-            except:
-                print('Exception: Bot most likely was blocked by the user')
             
 
     await message.answer('Игра остановлена!')
@@ -567,7 +562,7 @@ async def process_post_command(message: Message, state: FSMContext):
 
 @router.message(StateFilter(FSMPost.post))
 async def process_post_command_post(message: Message, bot: Bot, state: FSMContext):
-    urls = ['Подружиться с Пандой Бо! | https://t.me/panda_play_bot']
+    urls = 'Подружиться с Пандой Бо! | https://t.me/panda_play_bot'
     channel = '@pandamarket_club'
     markup = None
     if urls != '-':
