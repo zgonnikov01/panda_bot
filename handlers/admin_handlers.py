@@ -14,7 +14,7 @@ from lexicon.lexicon_ru import LEXICON
 from models.models import Game, Promo, Giveaway
 from models.methods import save_game, get_users, get_game, save_promo, get_promo,\
     get_promos, toggle_promo, delete_promo, update_user, get_game_results, \
-    get_user_by_username, get_giveaway, update_game
+    get_user_by_username, get_giveaway, update_game, get_giveaways
 from states.states import FSMCreateGame, FSMScheduleGame, FSMEchoPost, FSMStopGame,\
     FSMSavePromo, FSMEditPromos, FSMMessageUsers, FSMMessageUser, FSMGetGameResults, \
     FSMScheduleGiveaway, FSMLoadJsonGame, FSMPost
@@ -407,6 +407,21 @@ async def get_game_results_get_label(message: Message, state: FSMContext):
             answer.append('@' + game_result.username + ' ✅' if game_result.is_correct else ' ❌')
         await message.answer('\n'.join(answer))
     await state.clear()
+    print(await state.get_state())
+
+
+@router.message(StateFilter(default_state), Command(commands='delete_giveaways'))
+async def delete_giveaways(message: Message, state: FSMContext, bot: Bot):
+    await message.answer('Женя, ты долбаёб')
+    users = get_users()
+    for user in users:
+        try:
+            message_id = int(user.last_call_giveaway.split('|')[0])
+            await bot.delete_message(chat_id=user.user_id, message_id=message_id)
+        except Exception as e:
+            print(e)
+
+    await message.answer('Готово')
     print(await state.get_state())
 
 
