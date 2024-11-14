@@ -156,7 +156,7 @@ async def process_start_game_select(query: CallbackQuery, callback_data: GameCal
 
         markup = create_inline_kb(
             1,
-            {option.strip(): option.strip() for option in game.options.split()},
+            {option.strip(): str(i) for i, option in enumerate(game.options.split('|'))},
             last_btn={'Подтвердить': 'CONFIRM'}
         )
 
@@ -171,7 +171,7 @@ async def process_start_game_select(query: CallbackQuery, callback_data: GameCal
 
         markup = create_inline_kb(
             1,
-            {option.strip(): option.strip() for option in game.options.split('|')}
+            {option.strip(): str(i) for i, option in enumerate(game.options.split('|'))},
         )
 
         msg = await bot.send_message(
@@ -215,11 +215,11 @@ async def process_play_game_single(callback: CallbackQuery, bot: Bot, state: FSM
             username=callback.from_user.username,
             label=game.label,
             sequence_label=game.sequence_label,
-            is_correct=callback.data in game.answers.split('|')
+            is_correct=game.options.split('|')[int(callback.data)] in game.answers.split('|'),
         )
     )
     await asyncio.sleep(0.3)
-    if callback.data in game.answers.split('|'):
+    if game.options.split('|')[int(callback.data)] in game.answers.split('|'):
         await callback.message.answer(LEXICON['user_answer_correct'])
         await asyncio.sleep(0.2)
         await callback.message.answer(game.full_answer)
@@ -248,7 +248,7 @@ async def process_play_game_single(callback: CallbackQuery, bot: Bot, state: FSM
 
             markup = create_inline_kb(
                 1,
-                {option.strip(): option.strip() for option in game.options.split()},
+                {option.strip(): str(i) for i, option in enumerate(game.options.split('|'))},
                 last_btn={'Подтвердить': 'CONFIRM'}
             )
 
@@ -263,7 +263,7 @@ async def process_play_game_single(callback: CallbackQuery, bot: Bot, state: FSM
 
             markup = create_inline_kb(
                 1,
-                {option.strip(): option.strip() for option in game.options.split('|')}
+                {option.strip(): str(i) for i, option in enumerate(game.options.split('|'))},
             )
 
             msg = await bot.send_message(
