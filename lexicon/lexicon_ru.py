@@ -26,6 +26,7 @@ USER_MENU = {
 
 ADMIN_MENU = {
     '/create_game': 'Создать игру',
+    '/launch_long_game': 'Запустить длинную игру',
     '/launch_game': 'Задать параметры запуска игры',
     '/stop_game': 'Завершить игру',
     # '/stop_game_test': 'Завершить тестовую игру',

@@ -26,6 +26,10 @@ class FSMScheduleGame(StatesGroup):
     run = State()
 
 
+class FSMLaunchGiveaway(StatesGroup):
+    get_message = State()
+
+
 class FSMScheduleGiveaway(StatesGroup):
     get_label = State()
     get_time = State()

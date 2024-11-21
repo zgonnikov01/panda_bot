@@ -1,5 +1,3 @@
-version: '3.3'
-
 services:
   panda-bot:
     container_name: panda_bot

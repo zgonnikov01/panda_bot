@@ -108,6 +108,12 @@ def update_user(user_id: int, updates: dict):
         session.commit()
 
 
+def update_all_users(updates: dict):
+    with Session(engine) as session:
+        session.query(User).\
+            update(updates)
+        session.commit()
+
 def get_users(is_admin=False):
     with Session(engine) as session:
         statement = select(User)

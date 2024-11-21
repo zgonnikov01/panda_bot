@@ -1,7 +1,7 @@
 import json
 
 from aiogram import Router, Bot, F
-from aiogram.filters import Command, StateFilter, CommandStart
+from aiogram.filters import Command, StateFilter, CommandStart, CommandObject
 from aiogram.filters.callback_data import CallbackData
 from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.types.chat import Chat
@@ -14,10 +14,10 @@ from lexicon.lexicon_ru import LEXICON
 from models.models import Game, Promo, Giveaway
 from models.methods import save_game, get_users, get_game, save_promo, get_promo,\
     get_promos, toggle_promo, delete_promo, update_user, get_game_results, \
-    get_user_by_username, get_giveaway, update_game, get_giveaways
+    get_user_by_username, get_giveaway, update_game, get_giveaways, update_all_users
 from states.states import FSMCreateGame, FSMScheduleGame, FSMEchoPost, FSMStopGame,\
     FSMSavePromo, FSMEditPromos, FSMMessageUsers, FSMMessageUser, FSMGetGameResults, \
-    FSMScheduleGiveaway, FSMLoadJsonGame, FSMPost
+    FSMScheduleGiveaway, FSMLoadJsonGame, FSMPost, FSMLaunchGiveaway
 from keyboards.set_menu import set_admin_menu
 from keyboards.keyboard_utils import create_inline_kb
 from scheduling.scheduling import scheduler
@@ -412,7 +412,7 @@ async def get_game_results_get_label(message: Message, state: FSMContext):
 
 @router.message(StateFilter(default_state), Command(commands='delete_giveaways'))
 async def delete_giveaways(message: Message, state: FSMContext, bot: Bot):
-    await message.answer('Женя, ты долбаёб')
+    await message.answer('Удаляем сообщения giveaway-ев')
     users = get_users()
     for user in users:
         try:
@@ -425,41 +425,59 @@ async def delete_giveaways(message: Message, state: FSMContext, bot: Bot):
     print(await state.get_state())
 
 
-@router.message(StateFilter(default_state), Command(commands='giveaway'))
-async def process_giveaway_command(message: Message, state: FSMContext):
-    await message.answer('Запуск розыгрыша: введите уникальный идентификатор')
-    await state.set_state(FSMScheduleGiveaway.get_label)
-    print(await state.get_state())
+@router.message(StateFilter(default_state), Command(commands='launch_long_game'))
+async def launch_long_game(message: Message, state: FSMContext):
+    await message.answer('Пришлите картинку вместе с текстом')
+    await state.set_state(FSMLaunchGiveaway.get_message)
 
 
-@router.message(StateFilter(FSMScheduleGiveaway.get_label))
-async def process_giveaway_command(message: Message, state: FSMContext):
-    await state.update_data(label=message.text)
+@router.message(StateFilter(FSMLaunchGiveaway.get_message))
+async def launch_long_game__get_message(message: Message, state: FSMContext, bot=Bot):
 
-    await message.answer('Теперь нужно задать таймфрейм отправки сообщения: введите datetime в iso-формате и через | продолжительность в минутах (например, 2023-12-01T20:26|180)')
-    await state.set_state(FSMScheduleGiveaway.get_time)
-    print(await state.get_state())
+    months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря']
+
+    s = message.caption
+
+    months_appeared = [month for month in months if month in s]
+
+    if len(months_appeared) != 1 or s.count(months_appeared[0]) != 1:
+        await message.answer('Извини, не могу понять, когда заканчивать игру. В сообщении не обязательно должна быть дата в формате "число месяц_в_родительном_падеже", притом только одна.')
+        await state.clear()
+        return
+
+    month = months_appeared[0]
 
 
-@router.message(StateFilter(FSMScheduleGiveaway.get_time))
-async def get_giveaway_time(message: Message, state: FSMContext):
-    try:
-        dt, tf = message.text.split('|')
-        time_start = datetime.fromisoformat(dt)
-        time_stop = time_start + timedelta(minutes=int(tf))
-        await state.update_data(time_start=time_start.isoformat(), time_stop=time_stop.isoformat())
-        await message.answer('Принято! Теперь сообщение, которое нужно отправить')
-        await state.set_state(FSMScheduleGiveaway.get_message)
-    except:
-        await message.answer('Что-то пошло не так, попробуйте снова')
-    print(await state.get_state())
+    day = int(s[:s.find(month)].split()[-1])
+
+    time_start = datetime.now()
+    time_stop = datetime(time_start.year, months.index(month) + 1, day, 12)
+
+    # In case it's during new year times
+    if (time_stop - time_start).days < 0:
+        time_stop.replace(year = time_start.year + 1)
+
+    label = time_start.isoformat().split(':')[0]
+    
+    update_all_users({'last_call_giveaway': ''})
+
+    myjob = scheduler.add_job(jobfunc, 'interval', seconds=15, args=[message, bot, label])
+    scheduler.add_job(destroy_job, 'date', run_date=time_stop, args=[bot, myjob, label])
+
+    await message.answer(f'Готово!\n\nЕсли вдруг потребуется завершить игру досрочно, используй эту команду:')
+    await message.answer(f'/kill_long_game {myjob.id}')
+    await state.clear()
+
+
+@router.message(StateFilter(default_state), Command(commands='kill_long_game'))
+async def kill_long_game(message: Message, command: CommandObject, bot: Bot):
+    await destroy_job(bot=bot, myjob_id=command.args)
 
 
 async def jobfunc(message: Message, bot: Bot, label):
     users = get_users()
     markup=create_inline_kb(1, {'Участвовать!': GiveawayCallback(label=label).pack()})
     for user in users:
-        print(user.username, user.last_call_giveaway)
         if user.last_call_giveaway == None or user.last_call_giveaway == '':
             print(user.last_call_giveaway)
             try:
@@ -474,10 +492,14 @@ async def jobfunc(message: Message, bot: Bot, label):
             except:
                 print(f'Пользователь {user.user_id} ({user.username}) заблокировал бота (мб)')
 
-async def destroy_job(myjob, bot: Bot, label):
-    # scheduler.remove_job('myjob_id')
-    print('Завершение розыгрыша: ' + datetime.now().isoformat())
-    myjob.remove()
+
+async def destroy_job(bot: Bot, myjob=None, label='', myjob_id=None):
+    if myjob == None:
+        scheduler.remove_job(myjob_id)
+    else:
+        myjob.remove()
+
+    sent_list = []
     for user in get_users():
         if user.last_call_giveaway != None and user.last_call_giveaway != '':
             try:
@@ -487,36 +509,37 @@ async def destroy_job(myjob, bot: Bot, label):
                     date=msg_list[1],
                     chat=Chat(id=msg_list[2], type=msg_list[3])
                 ).as_(bot)
-                if not get_giveaway(label=label, user_id=user.user_id):
-                    try:
-                        await msg.delete()
-                    except:
-                        print(f'Невозможно удалить сообщение для пользователя {user.user_id} ({user.username})')
-                else:
-                    await bot.send_message(
-                        chat_id=user.user_id,
-                        text='Спасибо за участие в розыгрыше! Скоро Бо подведёт итоги!'
-                    )
+
+                try:
+                    await msg.delete()
+                except:
+                    print(f'Невозможно удалить сообщение для пользователя {user.user_id} ({user.username})')
+
+                await bot.send_message(
+                    chat_id=user.user_id,
+                    text='Спасибо за участие в розыгрыше! Скоро Бо подведёт итоги!'
+                )
+                if user.username != '':
+                    sent_list.append(f'@{user.username}')
             except:
                 print(f'Пользователь {user.user_id} ({user.username}) заблокировал бота (мб)')
             finally:
                 update_user(user.user_id, {'last_call_giveaway': None})
-    
-    print('Розыгрыш окончен: ' + datetime.now().isoformat())
+    joined_sent_list = '\n'.join( sent_list )
+    final_message = f'Длинная игра {myjob_id if myjob_id else myjob.id}{"" if myjob else " принудительно"} завершена.\n\nСписок участников:\n{joined_sent_list}'
 
-
-@router.message(StateFilter(FSMScheduleGiveaway.get_message))
-async def get_giveaway_time(message: Message, state: FSMContext, bot=Bot):
-    time_start = datetime.fromisoformat((await state.get_data())['time_start'])
-    time_stop = datetime.fromisoformat((await state.get_data())['time_stop'])
-    label = (await state.get_data())['label']
-    myjob = scheduler.add_job(jobfunc, 'interval', seconds=15, args=[message, bot, label])
-    print(time_stop)
-    scheduler.add_job(destroy_job, 'date', run_date=time_stop, args=[myjob, bot, label])
-    await message.answer('Готово!')
-    await state.clear()
-    print(await state.get_state())
-
+    for admin_id in config.tg_bot.admin_ids:
+        if len(final_message) > 4096:
+            for x in range(0, len(final_message), 4096):
+                await bot.send_message(
+                    chat_id=admin_id,
+                    text=final_message[x:x+4096]
+                )
+        else:
+            await bot.send_message(
+                chat_id=admin_id,
+                text=final_message
+            )
 
 @router.message(StateFilter(default_state), Command(commands='message_users'))
 async def process_message_users_command(message: Message, state: FSMContext):
