@@ -410,6 +410,21 @@ async def get_game_results_get_label(message: Message, state: FSMContext):
     print(await state.get_state())
 
 
+@router.message(StateFilter(default_state), Command(commands='delete_short'))
+async def delete_short(message: Message, state: FSMContext, bot: Bot):
+    await message.answer('Удаляем сообщения коротких игр')
+    users = get_users()
+    for user in users:
+        try:
+            message_id = int(user.last_call.split('|')[0])
+            await bot.delete_message(chat_id=user.user_id, message_id=message_id)
+        except Exception as e:
+            print(e)
+
+    await message.answer('Готово')
+    print(await state.get_state())
+
+
 @router.message(StateFilter(default_state), Command(commands='delete_giveaways'))
 async def delete_giveaways(message: Message, state: FSMContext, bot: Bot):
     await message.answer('Удаляем сообщения giveaway-ев')
