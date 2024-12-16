@@ -1,17 +1,46 @@
-import asyncio, time
+import asyncio, time, datetime
 from aiogram import Bot, Dispatcher
 from aiogram.methods import DeleteWebhook
 
 from aiogram.fsm.storage.redis import RedisStorage, Redis
 
+import handlers.admin.lotteries
 from config_data.config import load_config
 from handlers import admin_handlers, user_handlers
 from lexicon.lexicon_ru import USER_MENU, ADMIN_MENU
 from models.methods import create_db_and_tables
 from scheduling.scheduling import scheduler
+from handlers.utils import get_current_date, get_mongodb
+
 
 async def on_startup():
     scheduler.start()
+    job = scheduler.add_job(update_lotteries, 'cron', hour=0)
+    print(job)
+    update_lotteries()
+
+
+async def update_lotteries():
+    mongodb = get_mongodb()
+    current_lottery = mongodb.lotteries.find_one({
+        'start': {'$lge': datetime.datetime.now()}
+        'end': {'$gt': datetime.datetime.now()}
+    })
+    mongodb.lottery_state.drop()
+    if current_lottery:
+        n = (current_lottery['end'] - datetime.datetime.now()).days
+        gifts = {
+            key: value // n for key, value in current_lottery['gifts'].items()
+        }
+        bonus_points = {
+            'quantity': current_lottery['bonus_points']['quantity'] // n,
+            'options': current_lottery['bonus_points']['options']
+        }
+        mongodb.lottery_state.insert_one({
+            'label': current_lottery['label']
+            'gifts': gifts,
+            'bonus_points': bonus_points
+        })
 
 
 create_db_and_tables()
@@ -28,7 +57,11 @@ storage = RedisStorage(redis=redis)
 
 dp = Dispatcher(storage=storage)
 
-dp.include_routers(user_handlers.router, admin_handlers.router)
+dp.include_routers(
+    user_handlers.router,
+    admin_handlers.router,
+    handlers.admin.lotteries.router
+)
 dp.startup.register(on_startup)
 
 async def main():
@@ -42,3 +75,4 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         print(f'{10 * "-"} KeyboardInterrupt {10 * "-"}')
         exit()
+

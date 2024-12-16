@@ -12,11 +12,16 @@ class TgBot:
     token: str
     admin_ids: list[int]
 
+@dataclass
+class MongoDB:
+    username: str
+    password: str
 
 @dataclass
 class Config:
     tg_bot: TgBot
     db: DatabaseConfig
+    mongodb: MongoDB
 
 
 def load_config() -> Config:
@@ -32,5 +37,9 @@ def load_config() -> Config:
         ),
         db=DatabaseConfig(
             url = env.str('DB_URL')
+        ),
+        mongodb=MongoDB(
+            username = env.str('MONGO_USERNAME'),
+            password = env.str('MONGO_PASSWORD')
         )
     )

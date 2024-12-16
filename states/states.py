@@ -88,3 +88,7 @@ class FSMMessageUser(StatesGroup):
 class FSMGetGameResults(StatesGroup):
     get_label = State()
     
+
+class FSMLotteryUpload(StatesGroup):
+    get_json = State()
+
