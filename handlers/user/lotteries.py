@@ -47,8 +47,9 @@ async def answer_animation(message: Message, animation_path: str):
 async def spin(message: Message, bot: Bot, state: FSMContext):
     mongodb = get_mongodb()
     lottery_state = mongodb.lottery_state.find_one()
+    instruction = 'Чтобы забрать приз, позвони нашим волшебным помощникам на горячую линию 8-800-600-65-63 и сообщи, что ты выиграл'
     if not lottery_state:
-        await message.answer('Сегодня Панда Бо не проводит лотерею')
+        await message.answer('Столько дел навалилось на Панду Бо🐼\n\nК сожалению, он сейчас не может поиграть с тобой😔\n\nНо завтра может все поменяться🤩')
         return
     lottery = mongodb.lotteries.find_one({'label': lottery_state['label']})
     user_id = str(message.from_user.id)
@@ -57,7 +58,7 @@ async def spin(message: Message, bot: Bot, state: FSMContext):
             datetime.datetime.now().date().isoformat() in lottery['spin_history'][user_id]:
 
         await message.answer(
-            text='Играть в лотерею можно только один раз в день, попробуй завтра'
+            text='Кажется, сегодня ты уже играл🐼\n\nПриходи завтра - уверен, что ты победишь☝🏻'
         )
         return
     
@@ -83,10 +84,14 @@ async def spin(message: Message, bot: Bot, state: FSMContext):
                 message=message,
                 animation_path=f'assets/lottery/{gift}.gif'
             )
-            await message.answer(gift)
             result = gift
-            
-            # REPLY WITH INSTRUCTION
+            if gift == 'pizza':
+                await message.answer('Поздравляю🐼✨\n\nТы только что выиграл фантастическую пиццу Пепперони от Панды Бо🥳\n\nВот это удача 🍀 \n\nЧтобы забрать приз, позвони нашим волшебным помощникам на горячую линию 8-800-600-65-63 и сообщи, что ты выиграл')
+            elif gift == 'mochi':
+                await message.answer('Поздравляю🐼✨\n\nТы только что выиграл вкуснейший ролл Филадельфия от Панды Бо🥳\n\nВот это удача 🍀 \n\nЧтобы забрать приз, позвони нашим волшебным помощникам на горячую линию 8-800-600-65-63 и сообщи, что ты выиграл')
+            elif gift == 'rolls':
+                await message.answer('Поздравляю🐼✨\n\nТы только что выиграл вкуснейший ролл Филадельфия от Панды Бо🥳\n\nВот это удача 🍀 \n\nЧтобы забрать приз, позвони нашим волшебным помощникам на горячую линию 8-800-600-65-63 и сообщи, что ты выиграл')
+
 
     elif random.random() * 100 < lottery['bonus_point_percent'] and \
             int(option) <= lottery_state['bonus_points']['quantity']:
@@ -95,7 +100,6 @@ async def spin(message: Message, bot: Bot, state: FSMContext):
             message=message,
             animation_path='assets/lottery/bonus_points.gif'
         )
-        await message.answer(f'bonus{option}')
         result = f'bonus{option}'
         # SOMEHOW GIVE POINTS TO USER
         mongodb.bonus.insert_one({
@@ -104,6 +108,7 @@ async def spin(message: Message, bot: Bot, state: FSMContext):
             'datetime': datetime.datetime.now()
         })
         # REPLY WITH INSTRUCTION
+        await message.answer(f'Поздравляю🐼✨\n\nТы только что выиграл {option} бонусных баллов от Панды Бо🥳\n\nВот это удача 🍀 \n\n Баллы начислятся тебе на счёт в течение 3-х рабочих дней, только не забудь зарегистрироваться в бонусной программе: https://join2.club/panda')
     else:
         await answer_animation(
             message=message,
