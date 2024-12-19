@@ -5,9 +5,10 @@ from aiogram.methods import DeleteWebhook
 from aiogram.fsm.storage.redis import RedisStorage, Redis
 
 import handlers.admin.lotteries
+import handlers.admin.bonus
 import handlers.user.lotteries
-from config_data.config import load_config
 from handlers import admin_handlers, user_handlers
+from config_data.config import load_config
 from lexicon.lexicon_ru import USER_MENU, ADMIN_MENU
 from models.methods import create_db_and_tables
 from scheduling.scheduling import scheduler
@@ -62,7 +63,8 @@ dp.include_routers(
     user_handlers.router,
     admin_handlers.router,
     handlers.admin.lotteries.router,
-    handlers.user.lotteries.router
+    handlers.user.lotteries.router,
+    handlers.admin.bonus.router
 )
 dp.startup.register(on_startup)
 

@@ -18,10 +18,16 @@ class MongoDB:
     password: str
 
 @dataclass
+class Bamps:
+    api_url: str
+    api_token: str
+
+@dataclass
 class Config:
     tg_bot: TgBot
     db: DatabaseConfig
     mongodb: MongoDB
+    bamps: Bamps
 
 
 def load_config() -> Config:
@@ -41,5 +47,9 @@ def load_config() -> Config:
         mongodb=MongoDB(
             username = env.str('MONGO_USERNAME'),
             password = env.str('MONGO_PASSWORD')
+        ),
+        bamps=Bamps(
+            api_url = env.str('BAMPS_API_URL'),
+            api_token = env.str('BAMPS_API_TOKEN')
         )
     )
