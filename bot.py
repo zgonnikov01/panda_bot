@@ -24,25 +24,34 @@ async def on_startup():
 
 async def update_lotteries():
     mongodb = get_mongodb()
-    current_lottery = mongodb.lotteries.find_one({
-        'start': {'$lte': datetime.datetime.now()},
-        'end': {'$gt': datetime.datetime.now()}
-    })
-    mongodb.lottery_state.drop()
-    if current_lottery:
-        n = (current_lottery['end'] - datetime.datetime.now()).days
-        gifts = {
-            key: value // n for key, value in current_lottery['gifts'].items()
-        }
-        bonus_points = {
-            'quantity': current_lottery['bonus_points']['quantity'] // n,
-            'options': current_lottery['bonus_points']['options']
-        }
-        mongodb.lottery_state.insert_one({
-            'label': current_lottery['label'],
-            'gifts': gifts,
-            'bonus_points': bonus_points
+    try:
+        current_lottery = mongodb.lotteries.find_one({
+            'start': {'$lte': datetime.datetime.now()},
+            'end': {'$gt': datetime.datetime.now()}
         })
+    except Exception as e:
+        print(e)
+    try:
+        mongodb.lottery_state.drop()
+    except Exception as e:
+        print(e)
+    try:
+        if current_lottery:
+            n = (current_lottery['end'] - datetime.datetime.now()).days
+            gifts = {
+                key: value // n for key, value in current_lottery['gifts'].items()
+            }
+            bonus_points = {
+                'quantity': current_lottery['bonus_points']['quantity'] // n,
+                'options': current_lottery['bonus_points']['options']
+            }
+            mongodb.lottery_state.insert_one({
+                'label': current_lottery['label'],
+                'gifts': gifts,
+                'bonus_points': bonus_points
+            })
+    except Exception as e:
+        print(e)
 
 
 create_db_and_tables()
