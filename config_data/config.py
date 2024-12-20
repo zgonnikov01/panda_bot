@@ -45,8 +45,8 @@ def load_config() -> Config:
             url = env.str('DB_URL')
         ),
         mongodb=MongoDB(
-            username = env.str('MONGO_USERNAME'),
-            password = env.str('MONGO_PASSWORD')
+            username = env.str('MONGO_INITDB_ROOT_USERNAME'),
+            password = env.str('MONGO_INITDB_ROOT_PASSWORD')
         ),
         bamps=Bamps(
             api_url = env.str('BAMPS_API_URL'),
