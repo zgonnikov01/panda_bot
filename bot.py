@@ -69,11 +69,11 @@ storage = RedisStorage(redis=redis)
 dp = Dispatcher(storage=storage)
 
 dp.include_routers(
-    user_handlers.router,
     admin_handlers.router,
+    handlers.admin.bonus.router
     handlers.admin.lotteries.router,
     handlers.user.lotteries.router,
-    handlers.admin.bonus.router
+    user_handlers.router,
 )
 dp.startup.register(on_startup)
 
