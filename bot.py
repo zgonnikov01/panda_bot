@@ -19,7 +19,7 @@ async def on_startup():
     scheduler.start()
     job = scheduler.add_job(update_lotteries, 'cron', hour=0)
     print(job)
-    await update_lotteries()
+    #await update_lotteries()
 
 
 async def update_lotteries():
