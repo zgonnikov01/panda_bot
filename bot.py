@@ -70,7 +70,7 @@ dp = Dispatcher(storage=storage)
 
 dp.include_routers(
     admin_handlers.router,
-    handlers.admin.bonus.router
+    handlers.admin.bonus.router,
     handlers.admin.lotteries.router,
     handlers.user.lotteries.router,
     user_handlers.router,
