@@ -45,3 +45,24 @@ ADMIN_MENU = {
     '/load_json_game': 'Загрузить короткую игру по упрощённой схеме',
     '/post': 'Сделать пост в канал @pandamarket_club с кнопкой "Подружиться с пандой Бо!"'
 }
+class Lexicon:
+    class Admin:
+        class Lotteries:
+            example_config = \
+'''{
+    "label": "2024-12-20",
+    "gift_percent": 3,
+    "bonus_point_percent": 15,
+    "start": "2024-12-20",
+    "end": "2025-01-15",
+    "gifts": {
+        "mochi": 10,
+        "pizza": 5,
+        "rolls": 5
+    },
+    "bonus_points": {
+        "quantity": 10000,
+        "options": [ 100, 300, 500 ]
+    }
+}'''
+

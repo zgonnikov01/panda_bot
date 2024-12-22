@@ -21,7 +21,7 @@ router.message.filter(lambda message: message.from_user.id in config.tg_bot.admi
 
  
 @router.message(Command(commands='balance'), StateFilter(default_state))
-async def upload_lottery_config(message: Message, bot: Bot, state: FSMContext):
+async def get_balance(message: Message, bot: Bot, state: FSMContext):
     user = get_user(message.from_user.id)
     if user == None or user.phone == None:
         await message.answer('Для работы с бонусной программой сначала нужно зарегистрироваться. Используй команду /register')

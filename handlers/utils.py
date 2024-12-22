@@ -1,4 +1,5 @@
-import datetime
+import datetime, json
+import bson.json_util
 
 from pymongo import MongoClient
 
@@ -20,4 +21,13 @@ def get_mongodb():
     )
     mongo = client.database
     return mongo
+
+
+def wrap_as_json_code(s):
+    if type(s) == dict:
+        s = bson.json_util.dumps(s)
+    s = json.dumps(json.loads(s), indent=4)
+    result = f'<pre><code class="language-json">{s}</code></pre>'
+    print(result)
+    return(result)
 
