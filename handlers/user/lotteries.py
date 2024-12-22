@@ -95,6 +95,7 @@ async def spin(message: Message, bot: Bot, state: FSMContext):
     elif random.random() * 100 < lottery['bonus_point_percent'] and \
             int(option) <= lottery_state['bonus_points']['quantity']:
         lottery_state['bonus_points']['quantity'] -= option
+        lottery['bonus_points']['quantity'] -= option
         await answer_animation(
             message=message,
             animation_path='assets/lottery/bonus_points.gif'
