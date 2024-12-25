@@ -278,7 +278,7 @@ async def process_get_label(message: Message, state: FSMContext):
 
 
 @router.callback_query(StateFilter(FSMScheduleGame.run))
-async def process_get_label(callback: CallbackQuery, state: FSMContext, bot: Bot):
+async def process_select_option(callback: CallbackQuery, state: FSMContext, bot: Bot):
     sequence_label = (await state.get_data())['sequence_label']
     game: Game = get_game(sequence_label=sequence_label)
     print(game)
@@ -320,6 +320,7 @@ async def process_get_label(callback: CallbackQuery, state: FSMContext, bot: Bot
         await callback.message.answer(text='Запуск игры отменён')
         await state.clear()
 
+
 @router.message(StateFilter(default_state), Command(commands='stop_game'))
 async def process_stop_game_command(message: Message, state: FSMContext):
     await message.answer('Введите идентификатор последовательности')
@@ -328,7 +329,7 @@ async def process_stop_game_command(message: Message, state: FSMContext):
 
 
 @router.message(StateFilter(FSMStopGame.get_label))
-async def process_stop_game_command(message: Message, bot: Bot, state: FSMContext):
+async def process_stop_game_get_message(message: Message, bot: Bot, state: FSMContext):
     await message.answer('Введите сообщение для отправки по окончании игры')
     await state.update_data({'sequence_label': message.text})
     await state.set_state(FSMStopGame.stop)
@@ -451,7 +452,7 @@ async def launch_long_game__get_message(message: Message, state: FSMContext, bot
 
     months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря']
 
-    s = message.caption
+    s: str = message.caption
 
     months_appeared = [month for month in months if month in s]
 
