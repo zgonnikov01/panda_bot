@@ -24,7 +24,7 @@ def get_mongodb():
 
 
 def wrap_as_json_code(s):
-    if type(s) == dict:
+    if type(s) in [list, dict]:
         s = bson.json_util.dumps(s)
     s = json.dumps(json.loads(s), indent=4)
     result = f'<pre><code class="language-json">{s}</code></pre>'

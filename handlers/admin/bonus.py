@@ -12,7 +12,7 @@ from config_data.config import load_config
 from lexicon.lexicon_ru import LEXICON
 from models.methods import get_user
 from bamps import bamps
-from handlers.utils import get_current_date, get_mongodb
+from handlers.utils import get_current_date, get_mongodb, wrap_as_json_code
 
 
 config = load_config()
@@ -32,3 +32,57 @@ async def get_balance(message: Message, bot: Bot, state: FSMContext):
     except Exception as e:
         await message.answer('Не получилось проверить баланс. Помни, для того, чтобы работать с бонусной программой, тебе нужно зарегистрироваться в ней. Для этого скачай приложение по ссылке https://join2.club/panda')
 
+
+@router.message(Command(commands='check_refill'), StateFilter(default_state))
+async def check_refill(message: Message, bot: Bot, state: FSMContext):
+    mongodb = get_mongodb()
+    bonus_list = list(
+        mongodb.bonus\
+            .aggregate([
+                {
+                    '$match': {
+                        'datetime': {
+                            '$gte':
+                                datetime.datetime.now() - datetime.timedelta(days=7)
+                        }
+                    },
+                },
+                {
+                    '$group': {
+                        '_id': '$tg_id',
+                        'quantity': {
+                            '$sum': '$amount'
+                        }
+                    }
+                }
+            ])
+    )
+    await message.answer(f'Current bonus points to refill: {wrap_as_json_code(bonus_list)}', parse_mode='HTML')
+
+
+@router.message(Command(commands='refill'), StateFilter(default_state))
+async def refill(message: Message, bot: Bot, state: FSMContext):
+    mongodb = get_mongodb()
+    bonus_list = list(
+        mongodb.bonus\
+            .aggregate([
+                {
+                    '$match': {
+                        'datetime': {
+                            '$gte':
+                                datetime.datetime.now() - datetime.timedelta(days=7)
+                        }
+                    },
+                },
+                {
+                    '$group': {
+                        '_id': '$tg_id',
+                        'quantity': {
+                            '$sum': '$amount'
+                        }
+                    }
+                }
+            ])
+    )
+    await message.answer(f'Current bonus points to refill: {wrap_as_json_code(bonus_list)}', parse_mode='HTML')
+      
