@@ -20,6 +20,8 @@ async def on_startup():
     scheduler.start()
     job = scheduler.add_job(jobs.lotteries.update_state, 'cron', hour=0)
     print(job)
+    items = [BotCommand(command=item[0], description=item[1]) for item in USER_MENU.items()]
+    await bot.set_my_commands(commands=items)
     #await update_lotteries()
 
 
