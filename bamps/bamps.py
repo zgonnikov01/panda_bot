@@ -22,7 +22,7 @@ async def get_balance(phone_number: str) -> str:
     return json.loads(r.text)['data']['bonus_point_amount']
 
 
-async def refill(phone_number: str, amount: str) -> None:
+async def refill(phone_number: str, amount: str) -> None | str:
     r = requests.post(
         url=BAMPS_API_URL + 'refill',
         headers={

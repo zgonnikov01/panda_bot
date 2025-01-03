@@ -9,7 +9,7 @@ from aiogram.fsm.state import default_state
 import datetime
 
 from config_data.config import load_config
-from lexicon.lexicon_ru import LEXICON
+from lexicon.lexicon_ru import LEXICON, Lexicon
 from models.methods import get_user
 from bamps import bamps
 from handlers.utils import get_current_date, get_mongodb, wrap_as_json_code, format_number
@@ -70,7 +70,7 @@ async def refill(message: Message, bot: Bot, state: FSMContext):
                     '$match': {
                         'datetime': {
                             '$gte':
-                                datetime.datetime.now() - datetime.timedelta(days=7)
+                                datetime.datetime.now() - datetime.timedelta(days=227)
                         }
                     },
                 },
@@ -79,15 +79,19 @@ async def refill(message: Message, bot: Bot, state: FSMContext):
                         '_id': '$tg_id',
                         'quantity': {
                             '$sum': '$amount'
+                        },
+                        'phone': {
+                            '$first': '$phone'
                         }
                     }
                 }
             ])
-    )
+        )
+
 
     for bonus in bonus_list:
-        user = get_user(bonus['tg_id'])
-        bonus_list[bonus['tg_id']]['phone'] = format_number(user.phone)
+        user = get_user(bonus['_id'])
+        bonus['phone'] = format_number(user.phone)
     
     await message.answer(f'Current bonus points to refill: {wrap_as_json_code(bonus_list)}', parse_mode='HTML')
 
@@ -97,28 +101,33 @@ async def refill(message: Message, bot: Bot, state: FSMContext):
     result_error = []
     for bonus in bonus_list:
         try:
-            phone = await bamps.get_balance(bonus['phone'])
-            if phone:
-                bamps.refill(phone_number=phone, amount=str(bonus['quantity']))
-                result_success.append(f'🟢 Success {bonus["tg_id"]}')
+            balance = await bamps.get_balance(bonus['phone'])
+            if balance:
+                #await bamps.refill(phone_number=bonus['phone'], amount=str(bonus['quantity']))
+                result_success.append(f'🟢 Success {bonus["_id"], bonus["phone"], await bamps.get_balance(bonus["phone"])}')
                 await bot.send_message(
-                    chat_id=bonus['tg_id'],
+                    chat_id=bonus['_id'],
                     text=Lexicon.User.refill_success
                 ) 
             else:
                 await bot.send_message(
-                    chat_id=bonus['tg_id'],
+                    chat_id=bonus['_id'],
                     text=Lexicon.User.refill_no_account
                 ) 
-                result_no_account.append(f'🟡 No account: {bonus["tg_id"]}')
+                result_no_account.append(f'🟡 No account: {bonus["_id"], bonus["phone"]}')
         except Exception as e:
-            result_error.append(f'🔴 Error: {bonus["tg_id"]}')
+            result_error.append(f'🔴 Error: {bonus["_id"], bonus["phone"]}')
 
     result = '\n'.join([
-        '\n'.join(result_success),
-        '\n'.join(result_no_account),
-        '\n'.join(result_error)
+        f'Success ({len(result_success)}):',
+        '\n\t'.join(result_success),
+        f'No account ({len(result_no_account)}):',
+        '\n\t'.join(result_no_account),
+        f'Error ({len(result_error)}):',
+        '\n\t'.join(result_error)
     ])
 
-    await message.answer(f'Operation finished: {wrap_as_json_code(result)}', parse_mode='HTML')
+    wrapped_result = f'<pre><code class="language-json">{result}</code></pre>'
+
+    await message.answer(f'Operation finished: {wrapped_result}', parse_mode='HTML')
 

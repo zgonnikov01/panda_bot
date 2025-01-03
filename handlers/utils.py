@@ -28,7 +28,6 @@ def wrap_as_json_code(s):
         s = bson.json_util.dumps(s)
     s = json.dumps(json.loads(s), indent=4)
     result = f'<pre><code class="language-json">{s}</code></pre>'
-    print(result)
     return(result)
 
 
