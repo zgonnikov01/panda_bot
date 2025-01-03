@@ -105,15 +105,15 @@ async def refill(message: Message, bot: Bot, state: FSMContext):
             if balance:
                 #await bamps.refill(phone_number=bonus['phone'], amount=str(bonus['quantity']))
                 result_success.append(f'🟢 Success {bonus["_id"], bonus["phone"], await bamps.get_balance(bonus["phone"])}')
-                await bot.send_message(
-                    chat_id=bonus['_id'],
-                    text=Lexicon.User.refill_success
-                ) 
+                #await bot.send_message(
+                #    chat_id=bonus['_id'],
+                #    text=Lexicon.User.refill_success
+                #) 
             else:
-                await bot.send_message(
-                    chat_id=bonus['_id'],
-                    text=Lexicon.User.refill_no_account
-                ) 
+                #await bot.send_message(
+                #    chat_id=bonus['_id'],
+                #    text=Lexicon.User.refill_no_account
+                #) 
                 result_no_account.append(f'🟡 No account: {bonus["_id"], bonus["phone"]}')
         except Exception as e:
             result_error.append(f'🔴 Error: {bonus["_id"], bonus["phone"]}')
