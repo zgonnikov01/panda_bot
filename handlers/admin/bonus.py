@@ -52,11 +52,11 @@ async def check_refill(message: Message, bot: Bot, state: FSMContext):
                         '_id': '$tg_id',
                         'quantity': {
                             '$sum': '$amount'
+                        },
+                        'phone': {
+                            '$first': '$phone'
                         }
                     },
-                    'phone': {
-                        '$first': '$phone'
-                    }
                 }
             ])
     )
@@ -109,14 +109,14 @@ async def refill(message: Message, bot: Bot, state: FSMContext):
             if balance:
                 #await bamps.refill(phone_number=bonus['phone'], amount=str(bonus['quantity']))
                 result_success.append(f'🟢 Success {bonus["_id"], bonus["phone"], await bamps.get_balance(bonus["phone"])}')
-                mongodb.bonus.find_one_and_replace(
-                    filter={'tg_id': bonus['_id']},
-                    replacement={
-                        'tg_id': bonus['_id'],
-                        'amount': -bonus['quantity'],
-                        'datetime': datetime.datetime.now() + datetime.timedelta(days=7)
-                    }
-                )
+                #mongodb.bonus.find_one_and_replace(
+                #    filter={'tg_id': bonus['_id']},
+                #    replacement={
+                #        'tg_id': bonus['_id'],
+                #        'amount': -bonus['quantity'],
+                #        'datetime': datetime.datetime.now() + datetime.timedelta(days=7)
+                #    }
+                #)
                 #await bot.send_message(
                 #    chat_id=bonus['_id'],
                 #    text=Lexicon.User.refill_success
