@@ -33,10 +33,10 @@ def wrap_as_json_code(s):
 
 def format_number(n):
     if len(n) == 10:
-        return '+7' + n
+        return '7' + n
     if len(n) == 11:
-        return '+7' + n[1:]
+        return '7' + n[1:]
     if len(n) == 12:
-        return '+7' + n[2:]
+        return '7' + n[2:]
     return None
 

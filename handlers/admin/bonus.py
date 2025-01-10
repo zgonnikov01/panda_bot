@@ -99,12 +99,21 @@ async def refill(message: Message, bot: Bot, state: FSMContext):
     result_success = []
     result_no_account = []
     result_error = []
+
     for bonus in bonus_list:
         try:
             balance = await bamps.get_balance(bonus['phone'])
             if balance:
                 #await bamps.refill(phone_number=bonus['phone'], amount=str(bonus['quantity']))
                 result_success.append(f'🟢 Success {bonus["_id"], bonus["phone"], await bamps.get_balance(bonus["phone"])}')
+                mongodb.bonus.find_one_and_replace(
+                    filter={'tg_id': bonus['_id']},
+                    replacement={
+                        'tg_id': bonus['_id'],
+                        'amount': -bonus['quantity'],
+                        'datetime': datetime.datetime.now() + datetime.timedelta(days=7)
+                    }
+                )
                 #await bot.send_message(
                 #    chat_id=bonus['_id'],
                 #    text=Lexicon.User.refill_success

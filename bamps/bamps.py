@@ -9,7 +9,7 @@ BAMPS_API_URL = config.bamps.api_url
 BAMPS_API_TOKEN = config.bamps.api_token
 
 
-async def get_balance(phone_number: str) -> str:
+async def get_balance(phone_number: str) -> None | str:
     r = requests.post(
         url=BAMPS_API_URL + 'balance',
         headers={
@@ -19,6 +19,8 @@ async def get_balance(phone_number: str) -> str:
             'phone_number': phone_number
         }
     )
+    if json.loads(r.text)['status'] == 'error':
+        return None
     return json.loads(r.text)['data']['bonus_point_amount']
 
 
