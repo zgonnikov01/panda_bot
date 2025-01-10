@@ -42,8 +42,8 @@ async def check_refill(message: Message, bot: Bot, state: FSMContext):
                 {
                     '$match': {
                         'datetime': {
-                            '$gte':
-                                datetime.datetime.now() - datetime.timedelta(days=7)
+                            '$gte': datetime.datetime.now() - datetime.timedelta(days=777),
+                            '$lte': datetime.datetime.now()
                         }
                     },
                 },
@@ -53,6 +53,9 @@ async def check_refill(message: Message, bot: Bot, state: FSMContext):
                         'quantity': {
                             '$sum': '$amount'
                         }
+                    },
+                    'phone': {
+                        '$first': '$phone'
                     }
                 }
             ])
@@ -69,8 +72,8 @@ async def refill(message: Message, bot: Bot, state: FSMContext):
                 {
                     '$match': {
                         'datetime': {
-                            '$gte':
-                                datetime.datetime.now() - datetime.timedelta(days=227)
+                            '$gte': datetime.datetime.now() - datetime.timedelta(days=777),
+                            '$lte': datetime.datetime.now()
                         }
                     },
                 },
