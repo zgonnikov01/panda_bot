@@ -93,8 +93,11 @@ async def refill(message: Message, bot: Bot, state: FSMContext):
 
 
     for bonus in bonus_list:
-        user = get_user(bonus['_id'])
-        bonus['phone'] = format_number(user.phone)
+        try:
+            user = get_user(bonus['_id'])
+            bonus['phone'] = format_number(user.phone)
+        except Exception as e:
+            print(e)
     
     await message.answer(f'Current bonus points to refill: {wrap_as_json_code(bonus_list)}', parse_mode='HTML')
 
@@ -107,28 +110,41 @@ async def refill(message: Message, bot: Bot, state: FSMContext):
         try:
             balance = await bamps.get_balance(bonus['phone'])
             if balance:
-                #await bamps.refill(phone_number=bonus['phone'], amount=str(bonus['quantity']))
+                await bamps.refill(phone_number=bonus['phone'], amount=str(bonus['quantity']))
                 result_success.append(f'🟢 Success {bonus["_id"], bonus["phone"], await bamps.get_balance(bonus["phone"])}')
-                #mongodb.bonus.find_one_and_replace(
-                #    filter={'tg_id': bonus['_id']},
-                #    replacement={
-                #        'tg_id': bonus['_id'],
-                #        'amount': -bonus['quantity'],
-                #        'datetime': datetime.datetime.now() + datetime.timedelta(days=7)
-                #    }
-                #)
-                #await bot.send_message(
-                #    chat_id=bonus['_id'],
-                #    text=Lexicon.User.refill_success
-                #) 
+                mongodb.bonus.delete_many(
+                    filter={
+                        '$and': [
+                            {
+                                'datetime': {
+                                    '$gte': datetime.datetime.now() - datetime.timedelta(days=777),
+                                    '$lte': datetime.datetime.now()
+                                }
+                            },
+                            {
+                                'tg_id': bonus['_id']
+                            }
+                        ]
+                    }
+                )
+                mongodb.bonus.insert_one({
+                    'tg_id': bonus['_id'],
+                    'amount': -int(bonus['quantity']),
+                    'datetime': datetime.datetime.now() + datetime.timedelta(days=7)
+                })
+                await bot.send_message(
+                    chat_id=bonus['_id'],
+                    text=Lexicon.User.refill_success.format(quantity=bonus['quantity'])
+                ) 
             else:
-                #await bot.send_message(
-                #    chat_id=bonus['_id'],
-                #    text=Lexicon.User.refill_no_account
-                #) 
+                await bot.send_message(
+                    chat_id=bonus['_id'],
+                    text=Lexicon.User.refill_no_account
+                ) 
                 result_no_account.append(f'🟡 No account: {bonus["_id"], bonus["phone"]}')
         except Exception as e:
             result_error.append(f'🔴 Error: {bonus["_id"], bonus["phone"]}')
+            print(e)
 
     result = '\n'.join([
         f'Success ({len(result_success)}):',

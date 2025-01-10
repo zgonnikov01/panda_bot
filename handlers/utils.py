@@ -32,6 +32,7 @@ def wrap_as_json_code(s):
 
 
 def format_number(n):
+    n = n.replace('-', '').replace(' ', '')
     if len(n) == 10:
         return '7' + n
     if len(n) == 11:
