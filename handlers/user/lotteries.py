@@ -151,7 +151,7 @@ async def spin(message: Message, bot: Bot, state: FSMContext):
         lottery['bonus_points']['quantity'] -= option
         await answer_animation(
             message=message,
-            animation_path='assets/lottery/bonus_points_1.gif'
+            animation_path='assets/lottery/bonus_points_1.MOV'
         )
         result = f'bonus{option}'
         # SOMEHOW GIVE POINTS TO USER
@@ -167,7 +167,7 @@ async def spin(message: Message, bot: Bot, state: FSMContext):
         x = random.randint(1, 4)
         await answer_animation(
             message=message,
-            animation_path=f'assets/lottery/nothing_{x}.gif'
+            animation_path=f'assets/lottery/nothing_{x}.MOV'
         )
         #await message.answer('Сегодня удача прошла мимо тебя, но расстраивайся 🐼☝\n\nЗавтра ты можешь попробовать еще раз🤩')
         await message.answer(quotes[random.randint(0, 49)])
