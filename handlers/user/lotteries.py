@@ -113,9 +113,9 @@ async def spin(message: Message, bot: Bot, state: FSMContext):
             text='Кажется, сегодня ты уже играл🐼\n\nПриходи завтра - уверен, что ты победишь☝🏻'
         )
         return
-    
+
     # check if user hasn't won more than 2 times in last 7 days
-    
+
     option = random.choice(lottery_state['bonus_points']['options'])
 
     if lottery_state['gifts'] and random.random() * 100 < lottery['gift_percent']:
@@ -151,7 +151,7 @@ async def spin(message: Message, bot: Bot, state: FSMContext):
         lottery['bonus_points']['quantity'] -= option
         await answer_animation(
             message=message,
-            animation_path='assets/lottery/bonus_points.gif'
+            animation_path='assets/lottery/bonus_points_1.gif'
         )
         result = f'bonus{option}'
         # SOMEHOW GIVE POINTS TO USER
@@ -164,14 +164,15 @@ async def spin(message: Message, bot: Bot, state: FSMContext):
         await message.answer(quotes[random.randint(0, 49)])
         await message.answer(f'Поздравляю🐼✨\n\nТы только что выиграл {option} бонусных баллов от Панды Бо🥳\n\nВот это удача 🍀 \n\nБаллы начислятся тебе на счёт в течение 3-х рабочих дней, только не забудь зарегистрироваться в бонусной программе: https://join2.club/panda')
     else:
+        x = random.randint(1, 4)
         await answer_animation(
             message=message,
-            animation_path='assets/lottery/nothing.gif'
+            animation_path=f'assets/lottery/nothing_{x}.gif'
         )
         #await message.answer('Сегодня удача прошла мимо тебя, но расстраивайся 🐼☝\n\nЗавтра ты можешь попробовать еще раз🤩')
         await message.answer(quotes[random.randint(0, 49)])
         result = 'nothing'
-    
+
     if 'spin_history' not in lottery:
         lottery['spin_history'] = {}
     if user_id not in lottery['spin_history']:
@@ -179,7 +180,7 @@ async def spin(message: Message, bot: Bot, state: FSMContext):
     lottery['spin_history'][user_id][datetime.datetime.now().date().isoformat()] = result
     mongodb.lottery_state.find_one_and_replace(
         filter={'label': lottery_state['label']},
-        replacement=lottery_state    
+        replacement=lottery_state
     )
     mongodb.lotteries.find_one_and_replace(
         filter={'label': lottery_state['label']},
