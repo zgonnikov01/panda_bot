@@ -6,7 +6,7 @@ from handlers.utils import get_mongodb
 async def update_state():
     mongodb = get_mongodb()
 
-    mongodb.lottery_state.drop() 
+    mongodb.lottery_state.drop()
 
     current_lottery = mongodb.lotteries.find_one({
         'start': {'$lte': datetime.datetime.now()},

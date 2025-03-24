@@ -23,7 +23,7 @@ config = load_config()
 router = Router()
 router.message.filter(lambda message: message.from_user.id in config.tg_bot.admin_ids)
 
- 
+
 @router.message(Command(commands='lottery_upload_config'), StateFilter(default_state))
 async def upload_lottery_config(message: Message, bot: Bot, state: FSMContext):
     example = Lexicon.Admin.Lotteries.example_config
