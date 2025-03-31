@@ -27,7 +27,7 @@ async def get_balance(message: Message, bot: Bot, state: FSMContext):
         await message.answer('Для работы с бонусной программой сначала нужно зарегистрироваться. Используй команду /register')
         return
     try:
-        balance = await bamps.get_balance(user.phone)
+        balance = await bamps.get_balance(format_number(user.phone))
         await message.answer(f'На твоём счету {balance} бонусных баллов')
     except Exception as e:
         await message.answer('Не получилось проверить баланс. Помни, для того, чтобы работать с бонусной программой, тебе нужно зарегистрироваться в ней. Для этого скачай приложение по ссылке https://join2.club/panda')
@@ -60,6 +60,14 @@ async def check_refill(message: Message, bot: Bot, state: FSMContext):
                 }
             ])
     )
+
+    for bonus in bonus_list:
+        try:
+            user = get_user(bonus['_id'])
+            bonus['phone'] = format_number(user.phone)
+        except Exception as e:
+            print(e)
+
     await message.answer(f'Current bonus points to refill: {wrap_as_json_code(bonus_list)}', parse_mode='HTML')
 
 
