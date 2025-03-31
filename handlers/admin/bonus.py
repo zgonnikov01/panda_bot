@@ -42,7 +42,7 @@ async def check_refill(message: Message, bot: Bot, state: FSMContext):
                 {
                     '$match': {
                         'datetime': {
-                            '$gte': datetime.datetime.now() - datetime.timedelta(days=777),
+                            '$gte': datetime.datetime.now() - datetime.timedelta(days=7),
                             '$lte': datetime.datetime.now()
                         }
                     },
@@ -72,7 +72,7 @@ async def refill(message: Message, bot: Bot, state: FSMContext):
                 {
                     '$match': {
                         'datetime': {
-                            '$gte': datetime.datetime.now() - datetime.timedelta(days=777),
+                            '$gte': datetime.datetime.now() - datetime.timedelta(days=7),
                             '$lte': datetime.datetime.now()
                         }
                     },
@@ -110,32 +110,54 @@ async def refill(message: Message, bot: Bot, state: FSMContext):
         try:
             balance = await bamps.get_balance(bonus['phone'])
             if balance:
-                await bamps.refill(phone_number=bonus['phone'], amount=str(bonus['quantity']))
-                result_success.append(f'🟢 Success {bonus["_id"], bonus["phone"], await bamps.get_balance(bonus["phone"])}')
-                mongodb.bonus.delete_many(
-                    filter={
-                        '$and': [
-                            {
-                                'datetime': {
-                                    '$gte': datetime.datetime.now() - datetime.timedelta(days=777),
-                                    '$lte': datetime.datetime.now()
+                if bonus['quantity'] < 0:
+                    if balance < -bonus['quantity']:
+                        await bamps.refill(phone_number=bonus['phone'], amount=str(-balance))
+                    else:
+                        await bamps.refill(phone_number=bonus['phone'], amount=str(bonus['quantity']))
+                    result_success.append(f'🟢 Success {bonus["_id"], bonus["phone"], await bamps.get_balance(bonus["phone"])}')
+                    mongodb.bonus.delete_many(
+                        filter={
+                            '$and': [
+                                {
+                                    'datetime': {
+                                        '$gte': datetime.datetime.now() - datetime.timedelta(days=7),
+                                        '$lte': datetime.datetime.now()
+                                    }
+                                },
+                                {
+                                    'tg_id': bonus['_id']
                                 }
-                            },
-                            {
-                                'tg_id': bonus['_id']
-                            }
-                        ]
-                    }
-                )
-                mongodb.bonus.insert_one({
-                    'tg_id': bonus['_id'],
-                    'amount': -int(bonus['quantity']),
-                    'datetime': datetime.datetime.now() + datetime.timedelta(days=7)
-                })
-                await bot.send_message(
-                    chat_id=bonus['_id'],
-                    text=Lexicon.User.refill_success.format(quantity=bonus['quantity'])
-                ) 
+                            ]
+                        }
+                    )
+                else:
+                    await bamps.refill(phone_number=bonus['phone'], amount=str(bonus['quantity']))
+                    result_success.append(f'🟢 Success {bonus["_id"], bonus["phone"], await bamps.get_balance(bonus["phone"])}')
+                    mongodb.bonus.delete_many(
+                        filter={
+                            '$and': [
+                                {
+                                    'datetime': {
+                                        '$gte': datetime.datetime.now() - datetime.timedelta(days=7),
+                                        '$lte': datetime.datetime.now()
+                                    }
+                                },
+                                {
+                                    'tg_id': bonus['_id']
+                                }
+                            ]
+                        }
+                    )
+                    mongodb.bonus.insert_one({
+                        'tg_id': bonus['_id'],
+                        'amount': -int(bonus['quantity']),
+                        'datetime': datetime.datetime.now() + datetime.timedelta(days=7)
+                    })
+                    await bot.send_message(
+                        chat_id=bonus['_id'],
+                        text=Lexicon.User.refill_success.format(quantity=bonus['quantity'])
+                    ) 
             else:
                 await bot.send_message(
                     chat_id=bonus['_id'],
