@@ -16,6 +16,8 @@ from handlers.admin_handlers import GameCallback, GiveawayCallback
 from states.states import FSMRegister, FSMInGame
 from keyboards.set_menu import set_user_menu
 from keyboards.keyboard_utils import create_inline_kb
+from handlers.utils import format_number
+
 
 config = load_config()
 router = Router()
@@ -80,20 +82,26 @@ async def process_set_mail_error(message: Message):
 @router.message(StateFilter(FSMRegister.set_phone), F.text)
 async def process_set_phone(message: Message, state: FSMContext):
     phone = ''.join(x for x in message.text if x.isdigit())
-    await state.update_data(phone=phone)
-    user = get_user(message.from_user.id)
-    if user:
-        await state.update_data(points=user.points)
-        await state.update_data(is_admin=user.is_admin)
-        update_user(message.from_user.id, await state.get_data())
+
+    if format_number(phone) == None:
+        await message.answer('Извините, я вас не понимаю. Напишите пожалуйста ваш номер телефона')
     else:
-        await state.update_data(points=0)
-        await state.update_data(is_admin=False)
-        await state.update_data(user_id=message.from_user.id)
-        save_user(User(**await state.get_data()))
-    
-    await message.answer(LEXICON['user_registration_greeting'])
-    await state.clear()
+        phone = format_number(phone)
+
+        await state.update_data(phone=phone)
+        user = get_user(message.from_user.id)
+        if user:
+            await state.update_data(points=user.points)
+            await state.update_data(is_admin=user.is_admin)
+            update_user(message.from_user.id, await state.get_data())
+        else:
+            await state.update_data(points=0)
+            await state.update_data(is_admin=False)
+            await state.update_data(user_id=message.from_user.id)
+            save_user(User(**await state.get_data()))
+
+        await message.answer(LEXICON['user_registration_greeting'])
+        await state.clear()
 
 
 @router.message(StateFilter(FSMRegister.set_phone), ~F.text)
