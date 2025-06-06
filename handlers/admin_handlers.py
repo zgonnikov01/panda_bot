@@ -304,7 +304,7 @@ async def process_select_option(callback: CallbackQuery, state: FSMContext, bot:
                     continue
                 msg = await bot.send_message(
                     chat_id=user.user_id,
-                    text='Давай поиграем?',
+                    text='Заходи быстрее🏃🏻\nНовая игра от Панды Бо уже здесь🐼👋🏻',
                     reply_markup=create_inline_kb(1, {'Начать': game_callback})
                 )
                 msg_id=msg.message_id
