@@ -109,28 +109,60 @@ async def process_set_phone_error(message: Message):
     await message.answer('Извините, я вас не понимаю. Напишите пожалуйста ваш номер телефона')
 
 
-@router.callback_query(GiveawayCallback.filter())
-async def process_start_game_select(query: CallbackQuery, callback_data: GameCallback, bot: Bot, state: FSMContext):
-    label=callback_data.label
-    save_giveaway(
-        Giveaway(
-            user_id=query.message.chat.id,
-            username=query.message.chat.username,
-            label=label
-        )
-    )
-    await query.message.answer('Бо зарегистрировал тебя для участия в розыгрыше!')
-    user = get_user(query.message.chat.id)
-    msg_list = user.last_call_giveaway.split('|')
-    msg: Message = Message(
-        message_id=msg_list[0],
-        date=msg_list[1],
-        chat=Chat(id=msg_list[2], type=msg_list[3])
-    ).as_(bot)
+@router.callback_query(GiveawayCallback.filter(), StateFilter(default_state))
+async def process_start_giveaway_check_subscriptions(query: CallbackQuery, callback_data: GameCallback, bot: Bot, state: FSMContext):
+    user_id = query.message.chat.id
+
+    channels = [
+    ]
+    not_subscribed = []
+
+    for channel in channels:
+        member = await bot.get_chat_member(chat_id=channel, user_id=user_id)
+        if member.status not in ("member", "administrator", "creator"):
+            not_subscribed.append(channel)
+
     try:
-        await msg.delete_reply_markup()
+        notify_msg_id = (await state.get_data())['notify_msg_id']
+        if notify_msg_id != None:
+            await bot.delete_message(chat_id=user_id, message_id=notify_msg_id)
     except:
-        print('Exception: Cannot delete non-existing message')
+        pass
+
+    if not_subscribed:
+        channels_list = '\n'.join([f"- {ch}" for ch in not_subscribed])
+        notify_msg = await query.message.answer(
+            f"⚠️ Ты не подписался на каналы, чтобы поучаствовать в розыгрыше, подпишись и нажми на кнопку снова:\n\n"
+            f"{channels_list}"
+        )
+        notify_msg_id = notify_msg.message_id
+        await state.update_data(notify_msg_id=notify_msg_id)
+        await query.answer()
+    else:
+        label=callback_data.label
+        save_giveaway(
+            Giveaway(
+                user_id=query.message.chat.id,
+                username=query.message.chat.username,
+                label=label
+            )
+        )
+        await query.message.answer('Бо зарегистрировал тебя для участия в розыгрыше!')
+        await query.answer()
+        await state.update_data(notify_msg_id=None)
+        await state.clear()
+
+        user = get_user(query.message.chat.id)
+        msg_list = user.last_call_giveaway.split('|')
+        msg: Message = Message(
+            message_id=msg_list[0],
+            date=msg_list[1],
+            chat=Chat(id=msg_list[2], type=msg_list[3])
+        ).as_(bot)
+        try:
+            await msg.delete_reply_markup()
+        except:
+            print('Exception: Cannot delete non-existing message')
 
 
 # @router.callback_query(StateFilter(default_state), GameCallback.filter(F.type == 'text'))

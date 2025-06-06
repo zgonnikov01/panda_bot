@@ -69,7 +69,7 @@ class FSMEchoPost(StatesGroup):
 class FSMSavePromo(StatesGroup):
     get_label = State()
     save = State()
-    
+
 
 class FSMEditPromos(StatesGroup):
     select = State() # Выбор промо-кода из списка
