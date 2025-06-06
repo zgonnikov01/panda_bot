@@ -59,7 +59,8 @@ async def process_set_name(message: Message, state: FSMContext):
     # await message.answer(f'Хорошо, {message.text}, теперь пожалуйста укажите ваш адрес электронной почты')
     await message.answer(LEXICON['user_registration_ask_mail'] % message.text)
     await state.update_data(name=message.text)
-    await state.set_state(FSMRegister.set_mail)
+    await state.update_data(mail='---')
+    await state.set_state(FSMRegister.set_phone)
 
 
 @router.message(StateFilter(FSMRegister.set_name), ~F.text)
