@@ -115,6 +115,8 @@ async def process_start_giveaway_check_subscriptions(query: CallbackQuery, callb
     user_id = query.message.chat.id
 
     channels = [
+        '@pandamarket_club',
+        '@avtoprokat_26reg'
     ]
     not_subscribed = []
 
