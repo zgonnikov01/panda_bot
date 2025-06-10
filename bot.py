@@ -26,10 +26,10 @@ async def on_startup():
     items = [BotCommand(command=item[0], description=item[1]) for item in USER_MENU.items()]
     await bot.set_my_commands(commands=items)
 
-    print('trying to clear state for user 720747122...')
-    state = await Dispatcher.get_current().current_state(user=720747122)
-    await state.clear()
-    print('state cleared')
+    #print('trying to clear state for user 720747122...')
+    #state = await Dispatcher.get_current().current_state(user=720747122)
+    #await state.clear()
+    #print('state cleared')
 
     #await update_lotteries()
 
