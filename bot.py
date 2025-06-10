@@ -25,6 +25,12 @@ async def on_startup():
     print(job)
     items = [BotCommand(command=item[0], description=item[1]) for item in USER_MENU.items()]
     await bot.set_my_commands(commands=items)
+
+    print('trying to clear state for user 720747122...')
+    state = await Dispatcher.get_current().current_state(user=720747122)
+    await state.clear()
+    print('state cleared')
+
     #await update_lotteries()
 
 
@@ -54,12 +60,6 @@ dp.startup.register(on_startup)
 async def main():
     print('-' * 10 + 'START' + '-' * 10)
     await bot(DeleteWebhook(drop_pending_updates=True))
-
-    print('trying to clear state for user 720747122...')
-    state = await Dispatcher.get_current().current_state(user=720747122)
-    await state.clear()
-    print('state cleared')
-
     await dp.start_polling(bot)
 
 if __name__ == '__main__':
