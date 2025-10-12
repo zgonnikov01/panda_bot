@@ -60,7 +60,10 @@ dp.startup.register(on_startup)
 async def main():
     print('-' * 10 + 'START' + '-' * 10)
     await bot(DeleteWebhook(drop_pending_updates=True))
-    await dp.start_polling(bot)
+    try:
+        await dp.start_polling(bot)
+    finally:
+        await bot.session.close()
 
 if __name__ == '__main__':
     try:

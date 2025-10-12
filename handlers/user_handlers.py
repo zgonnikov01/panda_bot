@@ -81,45 +81,36 @@ async def process_set_phone(message: Message, state: FSMContext):
         )
         return
 
-    phone = contact.phone_number  # might be like "+79991234567" or "79991234567"
+    phone = contact.phone_number
 
     await state.update_data(phone=phone)
-    #await state.set_state(Reg.done)
     await message.answer(
         LEXICON["user_registration_phone_number_accepted"],
         reply_markup=ReplyKeyboardRemove()
     )
+
+    phone = format_number(phone)
+
+    await state.update_data(phone=phone)
+    user = get_user(message.from_user.id)
+
+    if user:
+        await state.update_data(points=user.points)
+        await state.update_data(is_admin=user.is_admin)
+        update_user(message.from_user.id, await state.get_data())
+    else:
+        await state.update_data(points=0)
+        await state.update_data(is_admin=False)
+        await state.update_data(user_id=message.from_user.id)
+        save_user(User(**await state.get_data()))
+
     await message.answer(LEXICON["user_registration_greeting"])
     await state.clear()
-    # proceed with your flow...
-    return
-
-    phone = ''.join(x for x in message.text if x.isdigit())
-
-    if format_number(phone) == None:
-        await message.answer('Извините, я вас не понимаю. Напишите пожалуйста ваш номер телефона')
-    else:
-        phone = format_number(phone)
-
-        await state.update_data(phone=phone)
-        user = get_user(message.from_user.id)
-        if user:
-            await state.update_data(points=user.points)
-            await state.update_data(is_admin=user.is_admin)
-            update_user(message.from_user.id, await state.get_data())
-        else:
-            await state.update_data(points=0)
-            await state.update_data(is_admin=False)
-            await state.update_data(user_id=message.from_user.id)
-            save_user(User(**await state.get_data()))
-
-        await message.answer(LEXICON['user_registration_greeting'])
-        await state.clear()
 
 
 @router.message(StateFilter(FSMRegister.set_phone), ~F.text)
 async def process_set_phone_error(message: Message):
-    await message.answer('Извините, я вас не понимаю. Напишите пожалуйста ваш номер телефона')
+    await message.answer(LEXICON["dont_understand"])
 
 
 @router.callback_query(GiveawayCallback.filter(), StateFilter(default_state))
@@ -127,8 +118,9 @@ async def process_start_giveaway_check_subscriptions(query: CallbackQuery, callb
     user_id = query.message.chat.id
 
     channels = [
-        '@pandamarket_club',
-        '@avtoprokat_26reg'
+        #'@pandamarket_club',
+        #'@avtoprokat_26reg'
+        "@pencil_alarm"
     ]
     not_subscribed = []
 
@@ -442,4 +434,4 @@ async def process_promo_command(message: Message, bot: Bot):
 
 @router.message(lambda message: message.chat.id not in config.tg_bot.admin_ids)
 async def echo(message: Message):
-    await message.answer('Извините, я вас не понимаю')
+    await message.answer(LEXICON["dont_understand"])
