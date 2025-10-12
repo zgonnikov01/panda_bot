@@ -1,17 +1,20 @@
-FROM python:3.13
+FROM python:3.13-slim AS app
 
-ENV PYTHONUNBUFFERED=1
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PIP_ROOT_USER_ACTION=ignore
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_ROOT_USER_ACTION=ignore
 
 WORKDIR /panda_bot
 
+RUN apt-get update && apt-get install -y --no-install-recommends postgresql-client && rm -rf /var/lib/apt/lists/*
+
 COPY requirements.txt .
 
-RUN pip install --upgrade pip
-RUN pip install --no-cache-dir -r ./requirements.txt
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install -U pip && \
+    pip install -r requirements.txt
 
-COPY ./ ./
+COPY . .
 
-#RUN chmod -R 777 ./
-
+CMD ["python", "-m", "bot"]

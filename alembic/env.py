@@ -13,7 +13,7 @@ from models.models import Base
 config = context.config
 env: Env = Env()
 env.read_env('.env')
-config.set_main_option('sqlalchemy.url', env.str('DB_URL'))
+config.set_main_option('sqlalchemy.url', env.str('PG_URL'))
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.

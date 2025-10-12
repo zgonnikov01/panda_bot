@@ -1,5 +1,7 @@
 services:
   panda-bot:
+    volumes:
+      - ./backups:${BACKUP_DIR}
     container_name: panda_bot
     working_dir: /panda_bot
     restart: always
@@ -21,18 +23,20 @@ services:
       - redis_data:/data
     environment:
       - TZ=Europe/Moscow
+
   db:
     image: postgres:15
     restart: always
     volumes:
       - postgres_data:/var/lib/postgresql/data/
     ports:
-      - 6543:5432
+      - 6543:${PG_PORT}
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=db
+      - POSTGRES_USER=${PG_USER}
+      - POSTGRES_PASSWORD=${PG_PASSWORD}
+      - POSTGRES_DB=${PG_HOST}
       - TZ=Europe/Moscow
+
   mongodb:
     image: mongo
     restart: always

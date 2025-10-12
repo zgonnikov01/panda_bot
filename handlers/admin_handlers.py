@@ -1,9 +1,11 @@
+import os
 import json
+import asyncio
 
 from aiogram import Router, Bot, F
 from aiogram.filters import Command, StateFilter, CommandStart, CommandObject
 from aiogram.filters.callback_data import CallbackData
-from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton, FSInputFile
 from aiogram.types.chat import Chat
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import default_state
@@ -69,6 +71,68 @@ async def process_cancel_create_game_command(message: Message, state: FSMContext
     await message.answer('Отмена')
     await state.clear()
     print(await state.get_state())
+
+@router.message(Command(commands="backup"))
+async def process_backup_command(message: Message):
+    try:
+        await message.answer("Starting backup…")
+
+        ts = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        filename = f"dump_{ts}.sql"
+
+        os.makedirs(config.backup_dir, exist_ok=True)
+        path = os.path.abspath(os.path.join(config.backup_dir, filename))
+
+        env = os.environ.copy()
+        env["PGPASSWORD"] = config.db.password
+
+        proc = await asyncio.create_subprocess_exec(
+            "pg_dumpall",
+            "-h", config.db.host,
+            "-p", str(config.db.port),
+            "-U", config.db.user,
+            "--no-owner",
+            "--no-privileges",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            env=env,
+        )
+
+        stdout, stderr = await proc.communicate()
+
+        if proc.returncode != 0:
+            raise RuntimeError(
+                f"pg_dump failed (code {proc.returncode}).\nSTDOUT:\n{stdout.decode()}\nSTDERR:\n{stderr.decode()}"
+            )
+
+        with open(path, "wb") as f:
+            f.write(stdout)
+            f.flush()
+            os.fsync(f.fileno())
+
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"Dump file not found at {path}")
+
+        size = os.path.getsize(path)
+        if size == 0:
+            raise RuntimeError("Dump file is empty")
+
+        await message.answer_document(
+            document=FSInputFile(path, filename=os.path.basename(path)),
+            caption=f"DB backup `{filename}`",
+        )
+
+        try:
+            os.remove(path)
+
+        except Exception as e:
+            await message.answer(f"Backup sent, but cleanup failed: {e}")
+
+        await message.answer("Backup sent and cleaned up ✅")
+
+    except Exception as e:
+        detail = str(e)
+        await message.answer(f"Backup failed ❌\n{detail[:1500]}")
 
 
 @router.message(Command(commands='load_json_game'), StateFilter(default_state))

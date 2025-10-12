@@ -16,7 +16,6 @@ from handlers.admin_handlers import GameCallback, GiveawayCallback
 from states.states import FSMInGame
 from keyboards.set_menu import set_user_menu
 from keyboards.keyboard_utils import create_inline_kb
-from handlers.utils import format_number
 
 
 router = Router()
