@@ -1,9 +1,7 @@
 import json, requests
 
-from config_data.config import load_config
+from config_data.config import config
 
-
-config = load_config()
 
 BAMPS_API_URL = config.bamps.api_url
 BAMPS_API_TOKEN = config.bamps.api_token

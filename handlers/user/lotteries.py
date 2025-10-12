@@ -7,14 +7,13 @@ from aiogram.types import Message, FSInputFile
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import default_state
 
-from config_data.config import load_config
+from config_data.config import config
 from lexicon.lexicon_ru import LEXICON
 from models.methods import get_user
 from states.states import FSMLotteryUpload
 from handlers.utils import get_current_date, get_mongodb
 
 
-config = load_config()
 router = Router()
 
 

@@ -12,15 +12,18 @@ class TgBot:
     token: str
     admin_ids: list[int]
 
+
 @dataclass
 class MongoDB:
     username: str
     password: str
 
+
 @dataclass
 class Bamps:
     api_url: str
     api_token: str
+
 
 @dataclass
 class Config:
@@ -53,3 +56,5 @@ def load_config() -> Config:
             api_token = env.str('BAMPS_API_TOKEN')
         )
     )
+
+config = load_config()

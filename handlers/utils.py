@@ -3,10 +3,7 @@ import bson.json_util
 
 from pymongo import MongoClient
 
-from config_data.config import load_config
-
-
-config = load_config()
+from config_data.config import config
 
 
 def get_current_date():

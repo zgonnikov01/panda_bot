@@ -1,6 +1,6 @@
 from sqlalchemy import create_engine, select, delete
 from sqlalchemy.orm import Session
-from config_data.config import load_config
+from config_data.config import config
 
 from models.models import Base, Game, User, Promo, GameResult, Giveaway
 
@@ -8,7 +8,6 @@ from models.models import Base, Game, User, Promo, GameResult, Giveaway
 #sqlite_url = f'sqlite:///{sqlite_file_name}'
 
 
-config = load_config()
 db_url = config.db.url
 
 

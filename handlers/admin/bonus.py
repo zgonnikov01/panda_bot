@@ -8,14 +8,13 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import default_state
 import datetime
 
-from config_data.config import load_config
+from config_data.config import config
 from lexicon.lexicon_ru import LEXICON, Lexicon
 from models.methods import get_user
 from bamps import bamps
 from handlers.utils import get_current_date, get_mongodb, wrap_as_json_code, format_number
 
 
-config = load_config()
 router = Router()
 router.message.filter(lambda message: message.from_user.id in config.tg_bot.admin_ids)
 

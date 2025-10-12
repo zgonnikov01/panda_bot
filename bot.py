@@ -10,8 +10,9 @@ from aiogram.fsm.storage.redis import RedisStorage, Redis
 import handlers.admin.lotteries
 import handlers.admin.bonus
 import handlers.user.lotteries
+import handlers.user.registration
 from handlers import admin_handlers, user_handlers
-from config_data.config import load_config
+from config_data.config import config
 from lexicon.lexicon_ru import USER_MENU, ADMIN_MENU
 from models.methods import create_db_and_tables
 from scheduling.scheduling import scheduler
@@ -36,7 +37,6 @@ async def on_startup():
 
 create_db_and_tables()
 
-config = load_config()
 BOT_TOKEN = config.tg_bot.token
 
 bot = Bot(BOT_TOKEN)
@@ -52,6 +52,7 @@ dp.include_routers(
     admin_handlers.router,
     handlers.admin.bonus.router,
     handlers.admin.lotteries.router,
+    handlers.user.registration.router,
     handlers.user.lotteries.router,
     user_handlers.router,
 )

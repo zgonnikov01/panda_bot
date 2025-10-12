@@ -1,19 +1,6 @@
 from aiogram.fsm.state import StatesGroup, State
 
 
-class FSMCreateGame(StatesGroup):
-    set_text = State()
-    set_mode = State()
-    request_options = State()
-    set_options = State()
-    set_answers = State()
-    set_label = State()
-    set_sequence_label = State()
-    upload_pictures = State()
-    set_full_answer = State()
-    get_final_message = State()
-    
-
 class FSMLoadJsonGame(StatesGroup):
     set_sequence_label = State()
     load_json = State()

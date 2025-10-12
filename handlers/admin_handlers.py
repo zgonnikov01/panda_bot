@@ -7,17 +7,39 @@ from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKe
 from aiogram.types.chat import Chat
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import default_state
-from datetime import datetime, timedelta
+from datetime import datetime
 
-from config_data.config import load_config
+from config_data.config import config
 from lexicon.lexicon_ru import LEXICON
-from models.models import Game, Promo, Giveaway
-from models.methods import save_game, get_users, get_game, save_promo, get_promo,\
-    get_promos, toggle_promo, delete_promo, update_user, get_game_results, \
-    get_user_by_username, get_giveaway, update_game, get_giveaways, update_all_users
-from states.states import FSMCreateGame, FSMScheduleGame, FSMEchoPost, FSMStopGame,\
-    FSMSavePromo, FSMEditPromos, FSMMessageUsers, FSMMessageUser, FSMGetGameResults, \
-    FSMScheduleGiveaway, FSMLoadJsonGame, FSMPost, FSMLaunchGiveaway
+from models.models import Game, Promo
+from models.methods import (
+    save_game,
+    get_users,
+    get_game,
+    save_promo,
+    get_promo,
+    get_promos,
+    toggle_promo,
+    delete_promo,
+    update_user,
+    get_game_results,
+    get_user_by_username,
+    update_game,
+    update_all_users
+)
+from states.states import (
+    FSMScheduleGame,
+    FSMEchoPost,
+    FSMStopGame,
+    FSMSavePromo,
+    FSMEditPromos,
+    FSMMessageUsers,
+    FSMMessageUser,
+    FSMGetGameResults,
+    FSMLoadJsonGame,
+    FSMPost,
+    FSMLaunchGiveaway
+)
 from keyboards.set_menu import set_admin_menu
 from keyboards.keyboard_utils import create_inline_kb
 from scheduling.scheduling import scheduler
@@ -31,7 +53,6 @@ class GiveawayCallback(CallbackData, prefix='giveaway'):
     label: str
 
     
-config = load_config()
 router = Router()
 router.message.filter(lambda message: message.from_user.id in config.tg_bot.admin_ids)
 
@@ -41,13 +62,6 @@ async def process_start_command(message: Message, bot: Bot, state: FSMContext):
     await set_admin_menu(message.from_user.id, bot)
     await message.answer(LEXICON['admin_start'])
     print(await state.get_state())
-
-
-# @router.message(Command(commands='user_start'), lambda message: message.from_user.id in config.tg_bot.admin_ids)
-# async def process_start_command(message: Message, bot: Bot, state: FSMContext):
-#     await set_admin_menu(bot)
-#     await message.answer(LEXICON['user_start'])
-#     print(await state.get_state())
 
 
 @router.message(Command(commands='cancel'))
@@ -118,7 +132,6 @@ async def process_load_json_game_command_load_pictures(message: Message, state: 
     print(await state.get_state())
 
 
-
 @router.callback_query(StateFilter(FSMLoadJsonGame.load_pictures))
 async def process_load_json_game_command_save(callback: CallbackQuery, state: FSMContext):
     print(await state.get_data())
@@ -127,131 +140,6 @@ async def process_load_json_game_command_save(callback: CallbackQuery, state: FS
     print(images)
     for index, image in enumerate(images):
         update_game(label=f'{sequence_label}-{index + 1}', updates={'images': image})
-    await state.clear()
-    print(await state.get_state())
-    await callback.message.delete()
-    await callback.message.answer(text='Поздравляю, игра создана!')
-
-
-@router.message(Command(commands='create_game'), StateFilter(default_state))
-async def process_create_game_command(message: Message, state: FSMContext):
-    await message.answer('Создание игры: введите текст')
-    await state.set_state(FSMCreateGame.set_mode)
-    print(await state.get_state())
-
-
-@router.message(StateFilter(FSMCreateGame.set_mode))
-async def process_set_game_text(message: Message, state: FSMContext):
-    await state.update_data(text=message.text)
-
-    await message.answer(
-        text='Отлично! Теперь укажите режим игры: ответ кнопками или текстом',
-        reply_markup=create_inline_kb(2, {'Кнопки': 'select', 'Текст': 'text'})
-    )
-
-    await state.set_state(FSMCreateGame.request_options)
-    print(await state.get_state())
-
-
-@router.callback_query(StateFilter(FSMCreateGame.request_options), F.data.in_(['select']))
-async def process_request_select_options(callback: CallbackQuery, state: FSMContext):
-    await state.update_data(type=callback.data)
-    #await callback.message.delete()
-    await callback.message.delete()
-    await callback.message.answer(
-        text='Класс! Теперь нужно ввести возможные варианты ответов через символ "|", например: Огурец | Николай | Лада 2114'
-    )
-    await state.set_state(FSMCreateGame.set_options)
-    print(await state.get_state())
-
-
-@router.callback_query(StateFilter(FSMCreateGame.request_options))
-async def process_request_text_options(callback: CallbackQuery, state: FSMContext):
-    await state.update_data(type=callback.data)
-    if callback.data == 'text':
-        await state.update_data(options='')
-    await callback.message.delete()
-    await callback.message.answer(text='Хорошо, теперь нужно ввести правильный вариант ответа')
-    await state.set_state(FSMCreateGame.set_answers)
-    print(await state.get_state())
-
-
-@router.message(StateFilter(FSMCreateGame.set_options))
-async def process_set_select_options(message: Message, state: FSMContext):
-    await state.update_data(options=message.text)
-    await message.answer('Хорошо, теперь нужно ввести правильный вариант (или варианты) ответа, также через символ "|"')
-    await state.set_state(FSMCreateGame.set_answers)
-    print(await state.get_state())
-
-
-@router.message(StateFilter(FSMCreateGame.set_answers))
-async def process_set_answers(message: Message, state: FSMContext):
-    await state.update_data(answers=message.text)
-    await message.answer('Принято! Теперь нужно указать развёрнутый ответ')
-    await state.set_state(FSMCreateGame.set_full_answer)
-    print(await state.get_state())
-
-
-@router.message(StateFilter(FSMCreateGame.set_full_answer))
-async def process_set_full_answer(message: Message, state: FSMContext):
-    await state.update_data(full_answer=message.text)
-    await message.answer('Есть, теперь идентификатор цикла - "once" для единоразовой игры или любой другой для цикла игр')
-    await state.set_state(FSMCreateGame.set_sequence_label)
-    print(await state.get_state())
-
-
-@router.message(StateFilter(FSMCreateGame.set_sequence_label))
-async def process_set_label(message: Message, state: FSMContext):
-    await state.update_data(sequence_label=message.text)
-
-    await message.answer(
-        text='Ответ записан! Теперь нужен уникальный идентификатор игры'
-    )
-
-    await state.set_state(FSMCreateGame.set_label)
-    print(await state.get_state())
-
-
-@router.message(StateFilter(FSMCreateGame.set_label))
-async def process_set_label(message: Message, state: FSMContext):
-    await state.update_data(label=message.text)
-
-    
-
-    await state.set_state(FSMCreateGame.get_final_message)
-    print(await state.get_state())
-
-
-@router.message(StateFilter(FSMCreateGame.get_final_message))
-async def process_get_final_message(message: Message, state: FSMContext):
-    await state.update_data(final_message=message.text)
-    await message.answer(
-        text='Отлично! Теперь нужно загрузить картинки для игры, когда все картинки будут загружены, нажмите на кнопку',
-        reply_markup=create_inline_kb(1, {'Готово': 'images_uploaded'})
-    )
-    await state.set_state(FSMCreateGame.upload_pictures)
-    print(await state.get_state())
-
-
-@router.message(StateFilter(FSMCreateGame.upload_pictures), F.photo)
-async def process_upload_pictures(message: Message, state: FSMContext):
-    try:
-        images = (await state.get_data())['images']
-    except:
-        images = ''
-    if images == '':
-        await state.update_data(images=message.photo[-1].file_id)
-    else:
-        await state.update_data(images=images + '|' + message.photo[-1].file_id)
-    print(await state.get_state())
-
-
-@router.callback_query(StateFilter(FSMCreateGame.upload_pictures))
-async def process_finishing_uploading_pictures(callback: CallbackQuery, state: FSMContext):
-    print(await state.get_data())
-    game = Game(**await state.get_data())
-    save_game(game)
-    print(game)
     await state.clear()
     print(await state.get_state())
     await callback.message.delete()
@@ -362,30 +250,6 @@ async def process_stop_game_get_label(message: Message, bot: Bot, state: FSMCont
     await message.answer('Игра остановлена!')
     await state.clear()
     print(await state.get_state())
-
-
-# @router.message(StateFilter(default_state), Command(commands='stop_game_test'))
-# async def process_stop_game_command(message: Message, bot: Bot):
-    # users = get_users(is_admin=True)
-    # for user in users:
-    #     print(user.username, user.last_call)
-    #     if user.last_call != '':
-    #         msg_list = user.last_call.split('|')
-    #         msg: Message = Message(
-    #             message_id=msg_list[0],
-    #             date=msg_list[1],
-    #             chat=Chat(id=msg_list[2], type=msg_list[3])
-    #         ).as_(bot)
-    #         await msg.delete()
-    #         update_user(user.user_id, {'last_call': ''})
-            
-    #     else:
-    #         await bot.send_message(
-    #             chat_id=user.user_id,
-    #             text='Спасибо за участие в игре!\nСкоро Бо подведёт итоги и назовёт победителя 🏆'
-    #         )
-
-    # await message.answer('Игра остановлена!')
 
 
 @router.message(StateFilter(default_state), Command(commands='get_results'))
@@ -604,8 +468,6 @@ async def get_message_to_user_text(message: Message, bot: Bot, state: FSMContext
 @router.message(Command(commands='get_user_count'), StateFilter(default_state))
 async def process_list_users_command(message: Message):
     await message.answer(str(len(get_users())))
-    #arstarstarstarstarst
-    # await message.answer('\n'.join([f'Имя: {user.name}\nПрофиль: @{user.username}\nТелефон: {user.phone}\nID: {user.user_id}\nБаллы: {user.points}\n' for user in get_users()]))
 
 
 @router.message(Command(commands='post'), StateFilter(default_state))
