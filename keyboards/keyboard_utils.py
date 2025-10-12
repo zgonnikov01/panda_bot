@@ -1,4 +1,4 @@
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 
@@ -23,3 +23,17 @@ def create_inline_kb(width: int,
         ))
 
     return kb_builder.as_markup()
+
+
+def phone_kb() -> ReplyKeyboardMarkup:
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text="📱 Share my phone", request_contact=True)],
+            [KeyboardButton(text="Skip")]
+        ],
+        resize_keyboard=True,
+        one_time_keyboard=True,
+        selective=True,
+        input_field_placeholder="Tap the button to share your phone"
+    )
+

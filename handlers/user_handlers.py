@@ -1,7 +1,7 @@
 import asyncio
 from aiogram import Router, Bot, F
 from aiogram.filters import Command, StateFilter, CommandStart
-from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, InputMediaPhoto
+from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, InputMediaPhoto, ReplyKeyboardRemove
 from aiogram.types.chat import Chat
 from datetime import datetime
 
@@ -15,7 +15,7 @@ from models.models import User, Game, GameResult, Giveaway
 from handlers.admin_handlers import GameCallback, GiveawayCallback
 from states.states import FSMRegister, FSMInGame
 from keyboards.set_menu import set_user_menu
-from keyboards.keyboard_utils import create_inline_kb
+from keyboards.keyboard_utils import create_inline_kb, phone_kb
 from handlers.utils import format_number
 
 
@@ -56,10 +56,13 @@ async def process_register_callback(callback: CallbackQuery, state: FSMContext):
 @router.message(StateFilter(FSMRegister.set_name), F.text)
 async def process_set_name(message: Message, state: FSMContext):
     await state.update_data(username=message.from_user.username)
-    # await message.answer(f'Хорошо, {message.text}, теперь пожалуйста укажите ваш адрес электронной почты')
-    await message.answer(LEXICON['user_registration_ask_mail'] % message.text)
+    #await message.answer(LEXICON['user_registration_ask_phone'])
+    await message.answer(
+        "To complete registration, please share your phone number.",
+        reply_markup=phone_kb(),
+    )
     await state.update_data(name=message.text)
-    await state.update_data(mail='---')
+    await state.update_data(mail='-')
     await state.set_state(FSMRegister.set_phone)
 
 
@@ -68,20 +71,34 @@ async def process_set_name_error(message: Message):
     await message.answer('Извините, я вас не понимаю. Напишите пожалуйста ваше имя')
 
 
-@router.message(StateFilter(FSMRegister.set_mail), F.text)
-async def process_set_mail(message: Message, state: FSMContext):
-    await message.answer(LEXICON['user_registration_ask_phone'])
-    await state.update_data(mail=message.text)
-    await state.set_state(FSMRegister.set_phone)
-
-
-@router.message(StateFilter(FSMRegister.set_mail), ~F.text)
-async def process_set_mail_error(message: Message):
-    await message.answer('Извините, я вас не понимаю. Напишите пожалуйста ваш адрес электронной почты')
-
-
-@router.message(StateFilter(FSMRegister.set_phone), F.text)
+@router.message(StateFilter(FSMRegister.set_phone), F.contact)
 async def process_set_phone(message: Message, state: FSMContext):
+    contact = message.contact
+
+    # Security: ensure it’s the sender’s own phone (Telegram guarantees this
+    # when request_contact=True, but we double-check)
+    if contact.user_id and contact.user_id != message.from_user.id:
+        await message.answer(
+            "Please share **your** phone using the button.",
+            reply_markup=phone_kb()
+        )
+        return
+
+    phone = contact.phone_number  # might be like "+79991234567" or "79991234567"
+    # normalize if you want:
+    # phone = phone.removeprefix("+").strip()
+
+    await state.update_data(phone=phone)
+    #await state.set_state(Reg.done)
+    await message.answer(
+        f"Thanks! Phone saved: {phone}",
+        reply_markup=ReplyKeyboardRemove()
+    )
+    await message.answer(LEXICON['user_registration_greeting'])
+    await state.clear()
+    # proceed with your flow...
+    return
+
     phone = ''.join(x for x in message.text if x.isdigit())
 
     if format_number(phone) == None:
