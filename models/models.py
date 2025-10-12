@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, DateTime, Boolean, BigInteger
+
 # from sqlalchemy.types import ARRAY
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -7,13 +8,9 @@ Base = declarative_base()
 
 
 class User(Base):
-    __tablename__ = 'users'
+    __tablename__ = "users"
     id = Column(
-        Integer,
-        nullable=False,
-        unique=True,
-        primary_key=True,
-        autoincrement=True
+        Integer, nullable=False, unique=True, primary_key=True, autoincrement=True
     )
     user_id = Column(BigInteger, index=True)
     name = Column(String)
@@ -23,19 +20,17 @@ class User(Base):
     is_admin = Column(Boolean)
     username = Column(String)
     mail = Column(String)
-    last_call = Column(String) # latest message "Давай поиграем?" id to delete it on /game_stop
+    last_call = Column(
+        String
+    )  # latest message "Давай поиграем?" id to delete it on /game_stop
     last_call_giveaway = Column(String)
     last_call_long = Column(String)
 
 
 class Game(Base):
-    __tablename__ = 'games'
+    __tablename__ = "games"
     id = Column(
-        Integer,
-        nullable=False,
-        unique=True,
-        primary_key=True,
-        autoincrement=True
+        Integer, nullable=False, unique=True, primary_key=True, autoincrement=True
     )
     text = Column(String)
     type = Column(String)
@@ -50,13 +45,9 @@ class Game(Base):
 
 
 class Promo(Base):
-    __tablename__ = 'promos'
+    __tablename__ = "promos"
     id = Column(
-        Integer,
-        nullable=False,
-        unique=True,
-        primary_key=True,
-        autoincrement=True
+        Integer, nullable=False, unique=True, primary_key=True, autoincrement=True
     )
     label = Column(String, index=True, unique=True)
     description = Column(String)
@@ -65,13 +56,9 @@ class Promo(Base):
 
 
 class GameResult(Base):
-    __tablename__ = 'game_results'
+    __tablename__ = "game_results"
     id = Column(
-        Integer,
-        nullable=False,
-        unique=True,
-        primary_key=True,
-        autoincrement=True
+        Integer, nullable=False, unique=True, primary_key=True, autoincrement=True
     )
     username = Column(String)
     label = Column(String, index=True)
@@ -80,13 +67,9 @@ class GameResult(Base):
 
 
 class Giveaway(Base):
-    __tablename__ = 'giveaways'
+    __tablename__ = "giveaways"
     id = Column(
-        Integer,
-        nullable=False,
-        unique=True,
-        primary_key=True,
-        autoincrement=True
+        Integer, nullable=False, unique=True, primary_key=True, autoincrement=True
     )
     label = Column(String)
     username = Column(String)

@@ -9,7 +9,7 @@ class DatabaseConfig:
     user: str
     port: str
     host: str
-    
+
 
 @dataclass
 class TgBot:
@@ -54,24 +54,20 @@ def load_config() -> Config:
     return Config(
         tg_bot=TgBot(
             token=env.str("BOT_TOKEN"),
-            admin_ids=[int(id) for id in env.list("ADMIN_IDS")]
+            admin_ids=[int(id) for id in env.list("ADMIN_IDS")],
         ),
         db=DatabaseConfig(
-            host=_host,
-            user=_user,
-            port=_port,
-            password=_password,
-            url=_url
+            host=_host, user=_user, port=_port, password=_password, url=_url
         ),
         mongodb=MongoDB(
-            username = env.str("MONGO_INITDB_ROOT_USERNAME"),
-            password = env.str("MONGO_INITDB_ROOT_PASSWORD")
+            username=env.str("MONGO_INITDB_ROOT_USERNAME"),
+            password=env.str("MONGO_INITDB_ROOT_PASSWORD"),
         ),
         bamps=Bamps(
-            api_url = env.str("BAMPS_API_URL"),
-            api_token = env.str("BAMPS_API_TOKEN")
+            api_url=env.str("BAMPS_API_URL"), api_token=env.str("BAMPS_API_TOKEN")
         ),
-        backup_dir=env.str("BACKUP_DIR")
+        backup_dir=env.str("BACKUP_DIR"),
     )
+
 
 config = load_config()

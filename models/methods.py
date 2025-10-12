@@ -4,8 +4,8 @@ from config_data.config import config
 
 from models.models import Base, Game, User, Promo, GameResult, Giveaway
 
-#sqlite_file_name = "models/database.db"
-#sqlite_url = f'sqlite:///{sqlite_file_name}'
+# sqlite_file_name = "models/database.db"
+# sqlite_url = f'sqlite:///{sqlite_file_name}'
 
 
 db_url = config.db.url
@@ -21,12 +21,16 @@ def create_db_and_tables():
     # cursor = connection.cursor()
     # cursor.execute('create database db')
 
+
 def save_game_result(game_result: GameResult):
     with Session(engine) as session:
         session.add(game_result)
         session.commit()
 
-def get_game_results(username=None, label=None, sequence_label=None, is_correct=None) -> list[GameResult]:
+
+def get_game_results(
+    username=None, label=None, sequence_label=None, is_correct=None
+) -> list[GameResult]:
     statement = select(GameResult)
     if username != None:
         statement = statement.where(GameResult.username == username)
@@ -41,6 +45,7 @@ def get_game_results(username=None, label=None, sequence_label=None, is_correct=
         game_results = session.scalars(statement).all()
     return game_results
 
+
 def save_game(game: Game):
     with Session(engine) as session:
         session.add(game)
@@ -49,9 +54,7 @@ def save_game(game: Game):
 
 def update_game(label: str, updates: dict):
     with Session(engine) as session:
-        session.query(Game).\
-            filter(Game.label == label).\
-            update(updates)
+        session.query(Game).filter(Game.label == label).update(updates)
         session.commit()
 
 
@@ -60,6 +63,7 @@ def get_games():
         statement = select(Game)
         games = session.execute(statement)
     return games
+
 
 def get_game(label=None, sequence_label=None):
     with Session(engine) as session:
@@ -77,6 +81,7 @@ def get_giveaways():
         statement = select(Giveaway)
         giveaways = session.scalars(statement).all()
     return giveaways
+
 
 def get_giveaway(label, user_id=None):
     with Session(engine) as session:
@@ -102,17 +107,15 @@ def save_user(user: User):
 
 def update_user(user_id: int, updates: dict):
     with Session(engine) as session:
-        session.query(User).\
-            filter(User.user_id == user_id).\
-            update(updates)
+        session.query(User).filter(User.user_id == user_id).update(updates)
         session.commit()
 
 
 def update_all_users(updates: dict):
     with Session(engine) as session:
-        session.query(User).\
-            update(updates)
+        session.query(User).update(updates)
         session.commit()
+
 
 def get_users(is_admin=False):
     with Session(engine) as session:
@@ -140,7 +143,7 @@ def get_user_by_username(username: str):
 def get_promos(active=False):
     with Session(engine) as session:
         if active:
-            statement = select(Promo).where(Promo.status == 'active')
+            statement = select(Promo).where(Promo.status == "active")
         else:
             statement = select(Promo)
         promos = session.scalars(statement).all()
@@ -164,10 +167,10 @@ def toggle_promo(label: str):
     with Session(engine) as session:
         statement = select(Promo).where(Promo.label == label)
         promo: Promo = session.scalars(statement).first()
-        if promo.status == 'active':
-            promo.status = 'inactive'
+        if promo.status == "active":
+            promo.status = "inactive"
         else:
-            promo.status = 'active'
+            promo.status = "active"
         session.commit()
 
 

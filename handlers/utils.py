@@ -7,14 +7,14 @@ from config_data.config import config
 
 
 def get_current_date():
-    return datetime.datetime.now().strftime('%Y-%m-%d')
+    return datetime.datetime.now().strftime("%Y-%m-%d")
 
 
 def get_mongodb():
     client = MongoClient(
-        'mongodb://panda_bot-mongodb-1',
+        "mongodb://panda_bot-mongodb-1",
         username=config.mongodb.username,
-        password=config.mongodb.password
+        password=config.mongodb.password,
     )
     mongo = client.database
     return mongo
@@ -25,16 +25,15 @@ def wrap_as_json_code(s):
         s = bson.json_util.dumps(s)
     s = json.dumps(json.loads(s), indent=4)
     result = f'<pre><code class="language-json">{s}</code></pre>'
-    return(result)
+    return result
 
 
 def format_number(n):
-    n = n.replace('-', '').replace(' ', '')
+    n = n.replace("-", "").replace(" ", "")
     if len(n) == 10:
-        return '7' + n
+        return "7" + n
     if len(n) == 11:
-        return '7' + n[1:]
+        return "7" + n[1:]
     if len(n) == 12:
-        return '7' + n[2:]
+        return "7" + n[2:]
     return None
-

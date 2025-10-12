@@ -59,8 +59,8 @@ class FSMSavePromo(StatesGroup):
 
 
 class FSMEditPromos(StatesGroup):
-    select = State() # Выбор промо-кода из списка
-    choose_action = State() # Какое-то действие с промо-кодом
+    select = State()  # Выбор промо-кода из списка
+    choose_action = State()  # Какое-то действие с промо-кодом
 
 
 class FSMMessageUsers(StatesGroup):
@@ -74,8 +74,7 @@ class FSMMessageUser(StatesGroup):
 
 class FSMGetGameResults(StatesGroup):
     get_label = State()
-    
+
 
 class FSMLotteryUpload(StatesGroup):
     get_json = State()
-
