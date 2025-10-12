@@ -28,12 +28,11 @@ def create_inline_kb(width: int,
 def phone_kb() -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="📱 Share my phone", request_contact=True)],
-            [KeyboardButton(text="Skip")]
+            [KeyboardButton(text="📱 Поделиться номером телефона", request_contact=True)]
         ],
         resize_keyboard=True,
         one_time_keyboard=True,
         selective=True,
-        input_field_placeholder="Tap the button to share your phone"
+        input_field_placeholder="Нажми на кнопку, чтобы поделиться номером"
     )
 

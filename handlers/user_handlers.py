@@ -34,20 +34,20 @@ async def process_start_command(message: Message, bot: Bot, state: FSMContext):
 async def process_register_command(message: Message):
     if get_user(message.from_user.id):
         await message.answer(
-            text='Вы уже зарегистрированы, уверены, что хотите пройти процесс заново?', 
-            reply_markup=create_inline_kb(2, {'Да': 'perform_registration', 'Отмена': 'cancel_registration'})
+            text="Вы уже зарегистрированы, уверены, что хотите пройти процесс заново?", 
+            reply_markup=create_inline_kb(2, {"Да": "perform_registration", "Отмена": "cancel_registration"})
         )
     else:
         await message.answer(
-            text = 'Мне нужны некоторые данные, чтобы вы могли поучаствовать в играх, давайте их заполним?',
-            reply_markup=create_inline_kb(2, {'Да': 'perform_registration', 'Отмена': 'cancel_registration'})
+            text = "Мне нужны некоторые данные, чтобы вы могли поучаствовать в играх, давайте их заполним?",
+            reply_markup=create_inline_kb(2, {"Да": "perform_registration", "Отмена": "cancel_registration"})
         )
 
 
-@router.callback_query(StateFilter(default_state), F.data.in_(['perform_registration', 'cancel_registration']))
+@router.callback_query(StateFilter(default_state), F.data.in_(["perform_registration", "cancel_registration"]))
 async def process_register_callback(callback: CallbackQuery, state: FSMContext):
-    if callback.data == 'perform_registration':
-        await callback.message.answer(LEXICON['user_registration_ask_name'])
+    if callback.data == "perform_registration":
+        await callback.message.answer(LEXICON["user_registration_request_name"])
         await state.set_state(FSMRegister.set_name)
     await callback.answer()
     await callback.message.delete()
@@ -56,27 +56,24 @@ async def process_register_callback(callback: CallbackQuery, state: FSMContext):
 @router.message(StateFilter(FSMRegister.set_name), F.text)
 async def process_set_name(message: Message, state: FSMContext):
     await state.update_data(username=message.from_user.username)
-    #await message.answer(LEXICON['user_registration_ask_phone'])
     await message.answer(
-        "To complete registration, please share your phone number.",
+        LEXICON["user_registration_request_phone_number"] % message.text,
         reply_markup=phone_kb(),
     )
     await state.update_data(name=message.text)
-    await state.update_data(mail='-')
+    await state.update_data(mail="-")
     await state.set_state(FSMRegister.set_phone)
 
 
 @router.message(StateFilter(FSMRegister.set_name), ~F.text)
 async def process_set_name_error(message: Message):
-    await message.answer('Извините, я вас не понимаю. Напишите пожалуйста ваше имя')
+    await message.answer(LEXICON["dont_understand"])
 
 
 @router.message(StateFilter(FSMRegister.set_phone), F.contact)
 async def process_set_phone(message: Message, state: FSMContext):
     contact = message.contact
 
-    # Security: ensure it’s the sender’s own phone (Telegram guarantees this
-    # when request_contact=True, but we double-check)
     if contact.user_id and contact.user_id != message.from_user.id:
         await message.answer(
             "Please share **your** phone using the button.",
@@ -85,16 +82,14 @@ async def process_set_phone(message: Message, state: FSMContext):
         return
 
     phone = contact.phone_number  # might be like "+79991234567" or "79991234567"
-    # normalize if you want:
-    # phone = phone.removeprefix("+").strip()
 
     await state.update_data(phone=phone)
     #await state.set_state(Reg.done)
     await message.answer(
-        f"Thanks! Phone saved: {phone}",
+        LEXICON["user_registration_phone_number_accepted"],
         reply_markup=ReplyKeyboardRemove()
     )
-    await message.answer(LEXICON['user_registration_greeting'])
+    await message.answer(LEXICON["user_registration_greeting"])
     await state.clear()
     # proceed with your flow...
     return
@@ -423,9 +418,10 @@ async def process_promo_command(message: Message, bot: Bot):
     if user != None:
         promos = get_promos(active=True)
         if len(promos) == 0:
-            await message.answer('К сожалению, у Бо сейчас нет промо-кодов( Но не расстраивайтесь, в ближайшее время они появятся!')
+            await message.answer(LEXICON["promo_no_promos"])
         else:
-            await message.answer('Актуальные промокоды от Бо!')
+            #await message.answer('Актуальные промокоды от Бо!')
+            await message.asnwer()
             images = [promo.image for promo in promos]
             descriptions = [promo.description for promo in promos]
             for promo in promos:
@@ -441,7 +437,7 @@ async def process_promo_command(message: Message, bot: Bot):
             #         media=[InputMediaPhoto(media=url) for url in images]
             # )
     else:
-        await message.answer('Для получения промо-кодов нужно зарегистрироваться! Напишите /register')
+        await message.answer(LEXICON["promo_register_first"])
 
 
 @router.message(lambda message: message.chat.id not in config.tg_bot.admin_ids)
