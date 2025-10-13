@@ -348,9 +348,9 @@ async def process_promo_command(message: Message, bot: Bot):
         if len(promos) == 0:
             await message.answer(LEXICON["promo_no_promos"])
         else:
-            # await message.answer('Актуальные промокоды от Бо!')
-            await message.answer()
+            await message.answer("Актуальные промокоды от Бо!")
             images = [promo.image for promo in promos]
+            print(promos)
             descriptions = [promo.description for promo in promos]
             for promo in promos:
                 await bot.send_photo(
