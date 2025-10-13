@@ -1,0 +1,15 @@
+- [X] Send lexicon to @saromet
+
+- [ ] Make roulette work with new rules
+
+- [X] Add subscription check
+- [X] Test long game
+
+- [X] Fix registration
+- [X] Add registration phone number button
+
+- [ ] Add automatic db backup via telegram
+- [ ] Refactor
+
+- [ ] Black
+- [ ] Maybe pipelines?
