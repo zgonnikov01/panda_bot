@@ -1,13 +1,9 @@
 import json
 
-from aiogram import Router, Bot, F
-from aiogram.filters import Command, StateFilter, CommandStart, CommandObject
-from aiogram.filters.callback_data import CallbackData
+from aiogram import Router, Bot
+from aiogram.filters import Command, StateFilter
 from aiogram.types import (
     Message,
-    CallbackQuery,
-    InlineKeyboardMarkup,
-    InlineKeyboardButton,
 )
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import default_state
@@ -16,26 +12,8 @@ import datetime
 from config_data.config import config
 from lexicon.lexicon_ru import LEXICON
 from lexicon.lexicon_ru import Lexicon
-from models.models import Game, Promo, Giveaway
-from models.methods import (
-    save_game,
-    get_users,
-    get_game,
-    save_promo,
-    get_promo,
-    get_promos,
-    toggle_promo,
-    delete_promo,
-    update_user,
-    get_game_results,
-    get_user_by_username,
-    get_giveaway,
-    update_game,
-    get_giveaways,
-    update_all_users,
-)
 from states.states import FSMLotteryUpload
-from handlers.utils import get_current_date, get_mongodb, wrap_as_json_code
+from handlers.utils import get_mongodb, wrap_as_json_code
 from scheduling import jobs
 
 
