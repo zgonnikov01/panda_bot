@@ -43,15 +43,18 @@ async def process_start_giveaway_check_subscriptions(
     user_id = query.message.chat.id
 
     channels = [
-        "@pandamarket_club",
+        #"@pandamarket_club",
         #'@avtoprokat_26reg'
-        # "@pencil_alarm"
+        "@pencil_alarm"
     ]
     not_subscribed = []
 
     for channel in channels:
-        member = await bot.get_chat_member(chat_id=channel, user_id=user_id)
-        if member.status not in ("member", "administrator", "creator"):
+        try:
+            member = await bot.get_chat_member(chat_id=channel, user_id=user_id)
+            if member.status not in ("member", "administrator", "creator"):
+                not_subscribed.append(channel)
+        except:
             not_subscribed.append(channel)
 
     try:
