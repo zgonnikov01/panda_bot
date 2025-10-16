@@ -330,11 +330,6 @@ async def process_play_game_text(message: Message, state: FSMContext):
 #     await message.answer(f'Ваши баллы: {get_user(message.from_user.id).points}')
 
 
-@router.message(StateFilter(default_state), Command(commands="help"))
-async def process_help_command(message: Message):
-    await message.answer(LEXICON["user_help"])
-
-
 @router.message(StateFilter(default_state), Command(commands="info"))
 async def process_help_command(message: Message):
     await message.answer(LEXICON["user_panda_info"])
