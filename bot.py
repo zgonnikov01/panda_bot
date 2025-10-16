@@ -18,7 +18,10 @@ from scheduling.scheduling import scheduler
 from scheduling import jobs
 from handlers.utils import get_mongodb
 
-from handlers.admin_handlers import jobfunc, destroy_job # TODO move outside of handlers into scheduling/jobs/long_games.py
+from handlers.admin_handlers import (
+    jobfunc,
+    destroy_job,
+)  # TODO move outside of handlers into scheduling/jobs/long_games.py
 
 
 async def on_startup():
@@ -38,7 +41,9 @@ async def on_startup():
 
             print(f"Long game job id {myjob.id} created: {myjob}")
 
-            delete_job = scheduler.add_job(destroy_job, "date", run_date=job["time_stop"], args=[label, bot])
+            delete_job = scheduler.add_job(
+                destroy_job, "date", run_date=job["time_stop"], args=[label, bot]
+            )
             print(f"Long game delete job id {delete_job.id} created: {delete_job}")
 
     items = [

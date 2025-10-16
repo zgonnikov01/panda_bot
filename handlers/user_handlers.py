@@ -45,7 +45,7 @@ async def process_start_giveaway_check_subscriptions(
     channels = [
         "@pandamarket_club",
         #'@avtoprokat_26reg'
-        #"@pencil_alarm"
+        # "@pencil_alarm"
     ]
     not_subscribed = []
 
@@ -55,7 +55,7 @@ async def process_start_giveaway_check_subscriptions(
             if member.status not in ("member", "administrator", "creator"):
                 not_subscribed.append(channel)
         except:
-            #not_subscribed.append(channel)
+            # not_subscribed.append(channel)
             pass
 
     try:

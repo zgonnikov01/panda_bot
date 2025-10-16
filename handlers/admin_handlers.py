@@ -457,7 +457,14 @@ async def launch_long_game__get_message(message: Message, state: FSMContext, bot
     serialized_message = json.dumps(deserialize_telegram_object_to_python(message))
 
     mongodb = get_mongodb()
-    mongodb.jobs.insert_one({"message": serialized_message, "label": label, "job_id": myjob.id, "time_stop": time_stop})
+    mongodb.jobs.insert_one(
+        {
+            "message": serialized_message,
+            "label": label,
+            "job_id": myjob.id,
+            "time_stop": time_stop,
+        }
+    )
 
     scheduler.add_job(destroy_job, "date", run_date=time_stop, args=[label, bot])
 
