@@ -2,6 +2,8 @@ import os
 import json
 import asyncio
 
+from datetime import datetime
+
 from aiogram import Router, Bot, F
 from aiogram.filters import Command, StateFilter, CommandStart, CommandObject
 from aiogram.filters.callback_data import CallbackData
@@ -15,8 +17,9 @@ from aiogram.types import (
 from aiogram.types.chat import Chat
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import default_state
-from datetime import datetime
+from aiogram.utils.serialization import deserialize_telegram_object_to_python
 
+from handlers.utils import get_mongodb
 from config_data.config import config
 from lexicon.lexicon_ru import LEXICON
 from models.models import Game, Promo
@@ -448,23 +451,38 @@ async def launch_long_game__get_message(message: Message, state: FSMContext, bot
     update_all_users({"last_call_giveaway": ""})
 
     myjob = scheduler.add_job(
-        jobfunc, "interval", seconds=15, args=[message, bot, label]
+        jobfunc, "interval", seconds=15, args=[message, label, bot]
     )
-    scheduler.add_job(destroy_job, "date", run_date=time_stop, args=[bot, myjob, label])
+
+    serialized_message = json.dumps(deserialize_telegram_object_to_python(message))
+
+    mongodb = get_mongodb()
+    mongodb.jobs.insert_one({"message": serialized_message, "label": label, "job_id": myjob.id, "time_stop": time_stop})
+
+    scheduler.add_job(destroy_job, "date", run_date=time_stop, args=[label, bot])
 
     await message.answer(
         f"Готово!\n\nЕсли вдруг потребуется завершить игру досрочно, используй эту команду:"
     )
-    await message.answer(f"/kill_long_game {myjob.id}")
+    await message.answer(f"/kill_long_game {label}")
     await state.clear()
 
 
 @router.message(StateFilter(default_state), Command(commands="kill_long_game"))
 async def kill_long_game(message: Message, command: CommandObject, bot: Bot):
-    await destroy_job(bot=bot, myjob_id=command.args)
+    await destroy_job(bot=bot, label=command.args, force=True)
 
 
-async def jobfunc(message: Message, bot: Bot, label):
+async def jobfunc(message: Message | str, label, bot: Bot | str):
+
+    if isinstance(message, str):
+        message_dict = json.loads(message)
+        message = Message(**message_dict)
+
+    if isinstance(bot, str):
+        bot_dict = json.loads(bot)
+        bot = Bot(**bot_dict)
+
     users = get_users()
     markup = create_inline_kb(1, {"Участвовать!": GiveawayCallback(label=label).pack()})
     for user in users:
@@ -473,7 +491,7 @@ async def jobfunc(message: Message, bot: Bot, label):
             try:
                 msg: Message = await message.send_copy(
                     chat_id=user.user_id, reply_markup=markup
-                )
+                ).as_(bot)
                 msg_id = msg.message_id
                 msg_date = msg.date.isoformat()
                 msg_chat_id = msg.chat.id
@@ -488,19 +506,29 @@ async def jobfunc(message: Message, bot: Bot, label):
                 print(
                     f"Сообщение отправлено пользователю {user.user_id} ({user.username})"
                 )
-            except:
+            except Exception as e:
                 print(
                     f"Пользователь {user.user_id} ({user.username}) заблокировал бота (мб)"
                 )
+                print(e)
 
 
-async def destroy_job(bot: Bot, myjob=None, label="", myjob_id=None):
-    if myjob == None:
-        scheduler.remove_job(myjob_id)
-    else:
-        myjob.remove()
+async def destroy_job(label: str, bot: Bot | str, force: bool = False):
+
+    if isinstance(bot, str):
+        bot_dict = json.loads(bot)
+        bot = Bot(**bot_dict)
+
+    mongodb = get_mongodb()
+
+    job_id = mongodb.jobs.find_one({"label": label})["job_id"]
+
+    scheduler.remove_job(job_id)
+
+    mongodb.jobs.delete_one({"label": label})
 
     sent_list = []
+
     for user in get_users():
         if user.last_call_giveaway != None and user.last_call_giveaway != "":
             try:
@@ -530,8 +558,10 @@ async def destroy_job(bot: Bot, myjob=None, label="", myjob_id=None):
                 )
             finally:
                 update_user(user.user_id, {"last_call_giveaway": None})
+
     joined_sent_list = "\n".join(sent_list)
-    final_message = f'Длинная игра {myjob_id if myjob_id else myjob.id}{"" if myjob else " принудительно"} завершена.\n\nСписок участников:\n{joined_sent_list}'
+
+    final_message = f'Длинная игра {job_id}{"" if force else " принудительно"} завершена.\n\nСписок участников:\n{joined_sent_list}'
 
     for admin_id in config.tg_bot.admin_ids:
         if len(final_message) > 4096:

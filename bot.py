@@ -16,12 +16,31 @@ from lexicon.lexicon_ru import USER_MENU, ADMIN_MENU
 from models.methods import create_db_and_tables
 from scheduling.scheduling import scheduler
 from scheduling import jobs
+from handlers.utils import get_mongodb
+
+from handlers.admin_handlers import jobfunc, destroy_job # TODO move outside of handlers into scheduling/jobs/long_games.py
 
 
 async def on_startup():
     scheduler.start()
     job = scheduler.add_job(jobs.lotteries.update_state, "cron", hour=0)
-    print(job)
+    print(f"Lottery job created: {job}")
+
+    mongodb = get_mongodb()
+
+    for job in mongodb.jobs.find():
+        label = job["label"]
+        if "message" in job:
+            myjob = scheduler.add_job(
+                jobfunc, "interval", seconds=15, args=[job["message"], label, bot]
+            )
+            mongodb.jobs.update_one({"label": label}, {"$set": {"job_id": myjob.id}})
+
+            print(f"Long game job id {myjob.id} created: {myjob}")
+
+            delete_job = scheduler.add_job(destroy_job, "date", run_date=job["time_stop"], args=[label, bot])
+            print(f"Long game delete job id {delete_job.id} created: {delete_job}")
+
     items = [
         BotCommand(command=item[0], description=item[1]) for item in USER_MENU.items()
     ]
