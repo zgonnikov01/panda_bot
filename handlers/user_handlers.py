@@ -55,7 +55,8 @@ async def process_start_giveaway_check_subscriptions(
             if member.status not in ("member", "administrator", "creator"):
                 not_subscribed.append(channel)
         except:
-            not_subscribed.append(channel)
+            #not_subscribed.append(channel)
+            pass
 
     try:
         notify_msg_id = (await state.get_data())["notify_msg_id"]
